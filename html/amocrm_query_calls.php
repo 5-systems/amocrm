@@ -1,0 +1,163 @@
+<?php
+
+   require_once('5c_std_lib.php');
+   require_once('5c_files_lib.php');
+   require_once('amocrm_settings.php');
+
+   date_default_timezone_set('Etc/GMT-3');    
+   
+   $result='';
+   
+   @$user_id=$_REQUEST['param_user_id'];
+   
+   if( !isset($user_id) ) {
+      $user_id='';
+   }
+
+   if( strlen($user_id)===0 ) exit($result);
+      
+   // Check active calls
+   $current_time=time();
+   
+   $db_host=$amocrm_database_host;
+   if( strlen($amocrm_database_port)>0 ) $db_host.=':'.$amocrm_database_port;
+   
+   $db_conn=mysql_connect($db_host, $amocrm_database_user, $amocrm_database_password);
+   if( $db_conn===false ) {
+      //write_log('Connection to database is failed', $amocrm_log_file, 'CONNE');
+      exit($result);    
+   } 
+
+   if( $db_conn!==false ) {
+      
+      $query_text="";      
+      $query_text.='use &amocrm_database_name&;';
+      $query_text=set_parameter('amocrm_database_name', $amocrm_database_name, $query_text);      
+      $db_status=mysql_query($query_text);
+
+      $query_text="";      
+      $query_text.="SET NAMES 'utf8';";
+      $db_status=mysql_query($query_text);
+      
+      $query_text="";
+      $query_text.=" select ";
+      $query_text.=  " calls.uniqueid, ";
+      $query_text.=  " calls.user_id, ";     
+      $query_text.=  " calls.client_phone, ";
+      $query_text.=  " calls.user_name, ";      
+      $query_text.=  " calls.lead_id, ";
+      $query_text.=  " calls.file_path, ";
+      $query_text.=  " calls.client_name, ";      
+      $query_text.=  " calls.new_client, ";      
+      $query_text.=  " calls.new_lead, ";            
+      $query_text.=  " calls.outcoming ";            
+      $query_text.=" from ";
+      $query_text.= " calls as calls ";
+      $query_text.=" where ";
+      $query_text.= " calls.date>='&date_start&' and calls.user_id='&user_id&'";
+      $query_text.=" order by ";
+      $query_text.= " calls.date desc ";
+      $query_text.=" limit 1; ";
+      
+      $start_date_time=date('Y-m-d H:i:s', $current_time-5*60);
+      $query_text=set_parameter('date_start', $start_date_time, $query_text);
+      
+      $query_text=set_parameter('user_id', $user_id, $query_text);
+      
+      $db_status=mysql_query($query_text);
+      if( $db_status===false ) {
+	 $result_message=mysql_error();
+	 //write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'REQUE');
+      }
+      else {
+	 
+	 $selected_uniqueid=null;
+	 $selected_user_id=null;
+	 $result_row_array=array();
+	 while($row = mysql_fetch_assoc($db_status)) {	 	    
+	    $result_row_array["client_phone"]=strVal($row["client_phone"]);
+	    $result_row_array["user_name"]=strVal($row["user_name"]);
+	    $result_row_array["lead_id"]=strVal($row["lead_id"]);
+	    $result_row_array["record_link"]=strVal($row["file_path"]);
+	    $result_row_array["client_name"]=strVal($row["client_name"]);
+	    $result_row_array["new_client"]=strVal($row["new_client"]);
+	    $result_row_array["new_lead"]=strVal($row["new_lead"]);
+	    $result_row_array["outcoming"]=strVal($row["outcoming"]);
+	    
+	    $selected_uniqueid=strVal($row["uniqueid"]);
+	    $selected_user_id=strVal($row["user_id"]);	    
+	    
+	    $result_row_array["from"]='';
+            $result_row_array["to"]='';
+            if( strVal($row["outcoming"])==='1' ) {
+               $result_row_array["from"].=$result_row_array["user_name"];
+
+               $result_row_array["to"].=$result_row_array["client_name"];
+
+               $client_name_from_request=remove_symbols($result_row_array["client_name"]);
+               if( strlen($client_name_from_request)<10 ) $result_row_array["to"].=' ('.$result_row_array["client_phone"].')';
+            }
+            else {
+	       $result_row_array["from"].=$result_row_array["client_name"];
+	    
+	       $client_name_from_request=remove_symbols($result_row_array["client_name"]);	    
+	       if( strlen($client_name_from_request)<10 ) $result_row_array["from"].=' ('.$result_row_array["client_phone"].')';
+
+               $result_row_array["to"].=$result_row_array["user_name"];
+	    }
+
+	    $client_status_str='';
+	    $new_client_str=' перв.';
+	    if( strlen($result_row_array["new_client"])===1
+	        && strVal($result_row_array["new_client"])==='0' ) {
+	        
+	       $new_client_str=' повт.'; 
+	    }
+	    
+	    $client_status_str.=$new_client_str;
+	    
+	    $new_lead_str=', новая сделка';
+	    if( strlen($result_row_array["new_lead"])===1
+	        && strVal($result_row_array["new_lead"])==='0' ) {
+	        
+	       $new_lead_str=', продолж. перег.'; 
+	    }	    
+	    
+	    $client_status_str.=$new_lead_str;
+
+	    $result_row_array["to"].=$client_status_str;
+
+	    break;
+	 }
+	 
+	 $result=json_encode($result_row_array);
+	 
+	 // remove record
+	 if( !is_null($selected_uniqueid)
+	     && !is_null($selected_user_id) ) {
+	     
+	    $query_text="";
+	    $query_text.=" delete from calls ";
+	    $query_text.=" where ";
+	    $query_text.=" calls.uniqueid='&uniqueid&' and calls.user_id='&user_id&' ";	    
+ 	    
+ 	    $query_text=set_parameter('uniqueid', $selected_uniqueid, $query_text);
+ 	    $query_text=set_parameter('user_id', $selected_user_id, $query_text);
+ 	    
+ 	    $db_status=mysql_query($query_text);
+	 }    
+	 
+      }
+      
+   }      
+
+   echo $result;
+
+
+function set_parameter($parameter, $value, $template) {
+    $function_result=$template;
+    $function_result=str_replace('&'.$parameter.'&', $value, $template);
+    return($function_result);
+}   
+
+?>

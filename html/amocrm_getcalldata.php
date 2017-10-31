@@ -1,0 +1,198 @@
+<?php
+
+   date_default_timezone_set('Etc/GMT-3');
+
+   @$CallerNumber=$_REQUEST['CallerNumber'];
+   
+   require_once('amocrm_settings.php');
+   require_once('5c_amocrm_lib.php');
+   require_once('5c_std_lib.php');
+   
+   $result='';
+   $result.='<type>0</type>';
+   $result.='<number></number>';
+   $result.='<name></name>';   
+   
+   write_log('blank_line', $amocrm_log_file, 'GET_CALL_TYPE');   
+   write_log($_REQUEST, $amocrm_log_file, 'GET_CALL_TYPE');   
+   
+   // Create http_requester
+   $http_requester=new amocrm_http_requester;
+   $http_requester->{'USER_LOGIN'}=$amocrm_USER_LOGIN;
+   $http_requester->{'USER_HASH'}=$amocrm_USER_HASH;
+   $http_requester->{'amocrm_account'}=$amocrm_account;
+   $http_requester->{'coockie_file'}=$amocrm_coockie_file;
+   $http_requester->{'log_file'}=$amocrm_log_file;   
+   
+   // Get contact by phone
+   $client_phone=remove_symbols($CallerNumber);
+   $client_phone=substr($client_phone, -10);
+   $parsed_client_phone=$client_phone;
+   
+   if( strlen($parsed_client_phone)<3 ) exit($result); 
+
+   $client_contact=null;
+   $client_company=null;
+   $client_name='';
+   $redirection_type='0';
+   
+   $contacts_array=array();
+   $parameters=array();
+   $parameters['type']='contact';
+   $parameters['query']=urlencode($parsed_client_phone);   
+   $contacts_array=get_contact_info($parameters, $http_requester);
+   
+   // Additional filter by phone
+   $contacts_array_tmp=array();
+   reset($contacts_array);
+   while( list($key, $value)=each($contacts_array) ) {
+       if( is_array($value)
+           && array_key_exists('custom_fields', $value)
+           && is_array($value['custom_fields']) ) {
+           
+           $phone_is_found_in_contact=false;
+           while( list($key_2, $value_2)=each($value['custom_fields']) ) {
+               if( is_array($value_2)
+                   && array_key_exists('id', $value_2)
+                   && strVal($value_2['id'])===strVal($custom_field_phone_id)
+                   && array_key_exists('values', $value_2)
+                   && is_array($value_2['values']) ) {
+                 
+                   $phone_values=$value_2['values'];
+                   foreach($phone_values as $value_3) {
+                       if( is_array($value_3)
+                           && array_key_exists('value', $value_3)
+                           && strpos($value_3['value'], $parsed_client_phone)!==false ) {
+                           
+                           $contacts_array_tmp[$key]=$value;
+                           $phone_is_found_in_contact=true;
+                           break;
+                       }
+                       
+                   }
+               }
+               
+               
+               if( $phone_is_found_in_contact===true ) break;
+           }           
+       }
+   }
+   
+   $contacts_array=$contacts_array_tmp;
+   
+   reset($contacts_array);
+   while( list($key, $value)=each($contacts_array) ) {
+      $client_contact=$value['contact_id'];
+      $client_name=$value['name'];
+      
+      if( strlen($value['company_id'])>0 ) {
+	 $client_company=$value['company_id'];
+      }
+
+      break;
+   }   
+   
+   $companies_array=array();
+   reset($contacts_array);
+   while( list($key, $value)=each($contacts_array) ) {
+      if( strlen($value['company_id'])>0 ) $companies_array[ intval($value['company_id']) ]=strval($value['company_id']);
+   }
+ 
+   write_log('Search for contact, contact_id='.$client_contact.', company_id='.$client_company, $amocrm_log_file, 'GET_CALL_TYPE');
+   
+   // Search user_id in leads
+   $user_id=null;
+   $lead_id=null;
+   if( count($contacts_array)>0 ) {
+   
+        $get_leads_from_date=date('d M Y H:i:s', time()-60*60*24*30);
+        $http_requester->{'header'}=array('if-modified-since: '.$get_leads_from_date);
+        $leads_array=get_leads_info('', $http_requester);
+
+        reset($leads_array);
+        while( list($key, $value)=each($leads_array) ) {
+           if( $value['status_id']!==$status_successful_realization
+               && $value['status_id']!==$status_canceled
+               && array_key_exists( intval($value['contact_id']), $contacts_array) ) {
+
+              if( is_numeric($value['user_id'])
+                  && strlen($value['user_id'])>0 ) {
+
+                 $user_id=$value['user_id'];
+                 $lead_id=$value['lead_id'];
+                 $redirection_type='1';
+                 break;
+              }
+           }
+        }
+               
+        $http_requester->{'header'}='';
+   }
+   
+   if( !is_null($user_id) ) {
+      write_log('User_id found from lead='.$lead_id.', user_id='.$user_id, $amocrm_log_file, 'GET_CALL_TYPE');
+   }
+  
+   // Search user_id in contacts
+   if( is_null($user_id) ) {
+   
+      reset($contacts_array);
+      while( list($key, $value)=each($contacts_array) ) {
+	 if( is_numeric($value['user_id'])
+	    && strlen($value['user_id'])>0 ) {
+	    
+	    $user_id=$value['user_id'];
+	    $client_name=$value['name'];
+	    $redirection_type='2';
+	 }
+      }
+      
+      if( !is_null($user_id) ) {
+	 write_log('User_id found from contact, user_id='.$user_id, $amocrm_log_file, 'GET_CALL_TYPE');
+      }      
+   
+   }
+
+  
+   
+   // Search companies by phone
+   if( is_null($user_id) ) {
+       
+      $parameters=array();
+      $parameters['type']='company';
+      $parameters['query']=urlencode($parsed_client_phone);
+      $companies_array=get_companies_info($parameters, $http_requester);
+    
+      reset($companies_array);
+      while( list($key, $value)=each($companies_array) ) {
+	 if( is_numeric($value['user_id'])
+             && strlen($value['user_id'])>0 ) {
+             
+	    $user_id=$value['user_id'];
+	    $client_name=$value['name'];
+	    $redirection_type='3';
+	    break;
+	 }
+      }
+
+      if( !is_null($user_id) ) {      
+	 write_log('User_id found in company, user_id='.$user_id, $amocrm_log_file, 'GET_CALL_TYPE');
+      }
+    
+   }
+   
+   
+   if( !is_null($user_id)
+       && strlen($user_id)>0 ) {
+   
+      $user_phone=get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester);
+      
+      $result='';
+      $result.='<type>'.$redirection_type.'</type>';
+      $result.='<number>'.$user_phone.'</number>';
+      $result.='<name>'.$client_name.'</name>';
+   }
+   
+   echo $result;   
+  
+?>   
