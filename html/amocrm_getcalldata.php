@@ -11,7 +11,7 @@
    $result='';
    $result.='<type>0</type>';
    $result.='<number></number>';
-   $result.='<name></name>';   
+   $result.='<name>Первичный клиент</name>';   
    
    write_log('blank_line', $amocrm_log_file, 'GET_CALL_TYPE');   
    write_log($_REQUEST, $amocrm_log_file, 'GET_CALL_TYPE');   

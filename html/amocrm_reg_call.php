@@ -1,4 +1,7 @@
 <?php
+
+   // version 01.11.2017
+
    date_default_timezone_set('Etc/GMT-3');
 
    @$CallId=$_REQUEST['CallId'];
@@ -26,10 +29,10 @@
 
 /*   
    $CallId="1508333734.17265";
-   $CallerNumber="4954190445";
-   $CallDate="20171031123743";
-   $CalledNumber='903';
-   $OutcomingCall='0';
+   $CallerNumber="907";
+   $CallDate="20171101090843";
+   $CalledNumber='4955404614';
+   $OutcomingCall='1';
 */
 
    // Input parameters
@@ -363,7 +366,7 @@
       $query_text=set_parameter('user_name', $user_name, $query_text);      
       $query_text=set_parameter('lead_id', $lead_id, $query_text);
       $query_text=set_parameter('file_path', $record_link, $query_text);      
-      $query_text=set_parameter('client_name', $client_contact_name, $query_text);
+      $query_text=set_parameter('client_name', strlen($client_contact_name)>0 ? $client_contact_name: $client_company_name, $query_text);
       $query_text=set_parameter('new_client', ($contact_created===true) ? 'true':'false', $query_text);
       $query_text=set_parameter('new_lead', ($lead_created===true) ? 'true':'false', $query_text);
       $query_text=set_parameter('outcoming', ($OutcomingCall==='1') ? 'true':'false', $query_text);
