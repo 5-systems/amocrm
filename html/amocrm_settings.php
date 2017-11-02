@@ -7,7 +7,7 @@
 
   $amocrm_USER_LOGIN='your@email.ru';
   $amocrm_USER_HASH='AMOCRM_HASH';
-  $amocrm_account='5system';
+  $amocrm_account='youraccount';
 
   // Phone station
   $phone_prefix='8';
