@@ -137,7 +137,7 @@
                    foreach($phone_values as $value_3) {
                        if( is_array($value_3)
                            && array_key_exists('value', $value_3)
-                           && strpos($value_3['value'], $parsed_client_phone)!==false ) {
+                           && strpos( remove_symbols($value_3['value']), $parsed_client_phone)!==false ) {
                            
                            $contacts_array_tmp[$key]=$value;
                            $phone_is_found_in_contact=true;
