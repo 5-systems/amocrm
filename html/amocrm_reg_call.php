@@ -28,17 +28,6 @@
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
 
-/*   
-   $CallId="1508333734.17265";
-   $CallerNumber="9218264579";
-   $CallDate="20171108090743";
-   $CalledNumber='';
-   $OutcomingCall='0';
-   $MissedCall='1';
-   $FromWeb='0';
-*/
-
-
    // Input parameters
    $call_unix_time='';
    if( strlen($CallDate)===14 ) $call_unix_time=strtotime($CallDate);
