@@ -1,6 +1,6 @@
 <?php
    
-   require_once('settings.php');
+   require_once('amocrm_settings.php');
    
    date_default_timezone_set('Etc/GMT-3');      
    

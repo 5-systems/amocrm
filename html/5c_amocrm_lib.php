@@ -1,6 +1,6 @@
 <?php
 
-  // version 01.11.2017
+  // version 08.11.2017
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -36,6 +36,7 @@
   public $custom_field_user_phone;
   public $custom_field_user_amo_crm;
   public $phone_prefix;
+  public $create_contact;
   
   
   // read only
@@ -46,6 +47,7 @@
       $this->connected=false;
       $this->contact_created=false;
       $this->phone_prefix='';
+      $this->create_contact=true;
   }
   
   public function register_call() {
@@ -140,7 +142,9 @@
     }
     
     // Create new contact
-    if( $contact_id===0 ) {
+    if( $contact_id===0
+        && ($this->create_contact===true) ) {
+        
       $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/v2/json/contacts/set';  
       
       $custom_fields_value=array();
@@ -204,7 +208,11 @@
 	 $parameters['type']='contact';
 	 $parameters['query']=strVal($this->user_phone);
 	 
-	 $return_result=amocrm_request('GET', $url, $parameters, $this->log_file, $this->coockie_file);	 
+         $return_result=false;
+         if( strlen($parameters['query'])>0 ) {
+            $return_result=amocrm_request('GET', $url, $parameters, $this->log_file, $this->coockie_file);
+         }   
+            
 	 if( $return_result!==false ) {
 	 
 	    $decoded_result=json_decode($return_result, true);
@@ -410,10 +418,10 @@ function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_
     $headers=$header;
   }
   elseif( is_array($parameters) ) {
-    $headers[] = "multipart/form-data";
+    $headers[] = "Content-Type: multipart/form-data";
   }
   else {
-    $headers[] = "application/x-www-form-urlencoded";
+    $headers[] = "Content-Type: application/x-www-form-urlencoded";
   }
   
   
@@ -452,7 +460,11 @@ function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_
   
   $status_text='';
   
-  if( $return_code_numeric!=200 && $return_code_numeric!=204 ) {  
+  if( $return_code_numeric!=200
+      && $return_code_numeric!=201
+      && $return_code_numeric!=202    
+      && $return_code_numeric!=204 ) {
+      
     $status_text=(isset($errors[$return_code_numeric]) ? $errors[$return_code_numeric].' '.$return_result : 'Undescribed error: '.$return_code);
     $result=false;
   }
@@ -650,6 +662,7 @@ function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_f
 function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $amocrm_http_requester=null,
 				 $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
 
+   
    $result=array();
 
    if( strlen($user_phone)>=3 ) {
@@ -674,7 +687,8 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 
       $parameters=array();
       $parameters['type']='contact';
-      $parameters['query']=urlencode($user_phone);  
+      $parameters['query']=urlencode($user_phone); 
+      
       $http_requester->{'parameters'}=$parameters;
 
       $return_result=$http_requester->request();
@@ -722,7 +736,7 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 	 } // search for contact
 
 	 
-	 // search for user phone
+	 // search for user_id
 	 if( is_array($client_contact)
 	       && isset($client_contact['custom_fields'])
 	       && count($client_contact['custom_fields'])>0 ) {
@@ -748,7 +762,7 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 		  
 	    } 
 			   
-	 } // search for user phone
+	 } // search for user_id
 	 
 	 // search for other info
 	 if( is_array($client_contact) ) {	    
@@ -1052,10 +1066,11 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
 
 
 function create_lead($name, $status_id, $responsible_user_id, $company_id, $amocrm_http_requester=null,
-		    $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+		     $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
 
    global $custom_field_address_type;
    global $custom_field_address_type_value_phone_call;
+   global $custom_field_address_type_value_string_phone_call;
 		    
    $result=false;
 
@@ -1087,13 +1102,16 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $amoc
    );
    
    if( isset($custom_field_address_type)
-       && isset($custom_field_address_type_value_phone_call) ) {
+       && isset($custom_field_address_type_value_phone_call)
+       && isset($custom_field_address_type_value_string_phone_call) ) {
        
       $parameters['request']['leads']['add'][0]['custom_fields']=array(
 				    array(
 					  'id'=>intval($custom_field_address_type),
 					  'values'=>array(
-							    array('enum'=>intval($custom_field_address_type_value_phone_call), 'value'=>'Телефонный звонок'
+							    array(
+                                                                'enum'=>intval($custom_field_address_type_value_phone_call),
+                                                                'value'=>$custom_field_address_type_value_string_phone_call
 							    )
 						    )
 					     )
@@ -1384,11 +1402,13 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
 }
 
 
-function create_unsorted($name, $status_id, $responsible_user_id, $company_id, $amocrm_http_requester=null,
+function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
+                         $contact_name, $company_id, $record_link='', $outcoming=false, $fields=array(), $amocrm_http_requester=null,
 		         $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
 
+   global $custom_field_phone_id;
+   global $custom_field_phone_enum;  
    global $custom_field_address_type;
-   global $custom_field_address_type_value_phone_call;
 		    
    $result=false;
 
@@ -1407,40 +1427,137 @@ function create_unsorted($name, $status_id, $responsible_user_id, $company_id, $
 
    if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
    
+   $unsorted_id=strVal(uniqid('un', true));
+   $note_id=strVal(uniqid('no', true));
+   
+   $date_create=time();
+   
+   if( !is_numeric($pipeline_id) ) $pipeline_id=0;
+   if( !is_numeric($company_id) ) $company_id=0;
+   
    $parameters=array();
-   $parameters['request']['leads']['add']=array(
-	 array(
-	    'name'=>$name,
-	    'status_id'=>intval($status_id),
-	    'responsible_user_id'=>intval($responsible_user_id),
-	    'linked_company_id'=>strval($company_id),
-	    'created_user_id'=> 0,
-	    'responsable_user_id'=> 0
-	)
+   $parameters['request']['unsorted']=array(
+        'category' => 'sip'
    );
    
-   if( isset($custom_field_address_type)
-       && isset($custom_field_address_type_value_phone_call) ) {
+   $parameters['request']['unsorted']['add']=array(
+       array(
+            'source'      => 'src',
+            'source_uid'  => $unsorted_id,
+            'date_create' => $date_create,
+            'pipeline_id' => intVal($pipeline_id),
+            'source_data' => array(
+                'from'     => $phone_from,
+                'to'       => $phone_to,
+                'date'     => $date_create,
+                'duration' => 0,
+                'link'     => strVal($record_link),
+                'service'  => 'src',
+            )
+       )     
+    );
+   
+   $parameters['request']['unsorted']['add'][0]['data']=
+    array(
+        'leads'=>array(
+            array(
+                 'name' => strVal($name),
+                 'linked_company_id' => intVal($company_id),           
+            )
+        )
+    );
+   
+   
+   reset($fields);
+   while( list($key, $value)=each($fields) ) {
        
-      $parameters['request']['leads']['add'][0]['custom_fields']=array(
-				    array(
-					  'id'=>intval($custom_field_address_type),
-					  'values'=>array(
-							    array('enum'=>intval($custom_field_address_type_value_phone_call), 'value'=>'Телефонный звонок'
-							    )
-						    )
-					     )
-				   );
-   }    
+        if( isset($custom_field_address_type)
+            && strVal($key)===strVal($custom_field_address_type) ) {
+
+           $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields']=
+                                array(
+                                         array(
+                                               'id'=>intval($custom_field_address_type),
+                                               'values'=>array(
+                                                                 array(
+                                                                       'enum'=>intval($value['value']),
+                                                                       'value'=>strVal($value['value_string'])
+                                                                 )
+                                                         )
+                                        )
+                                       
+                                );
+        }
+   
+   }
+   
+   if( strlen($contact_name)>0 ) {
+       
+        $parameters['request']['unsorted']['add'][0]['data']['contacts']=
+        array(
+               array(
+                    'name' => strVal($contact_name),
+                    'linked_company_id' => intVal($company_id),           
+               )
+        );
+
+        reset($fields);
+        while( list($key, $value)=each($fields) ) {
+        
+            if( isset($custom_field_phone_id)
+                && strVal($custom_field_phone_id)===strVal($key) ) {
+
+                $parameters['request']['unsorted']['add'][0]['data']['contacts'][0]['custom_fields']=
+                    array(
+                          array(
+                            'id'     => strVal($key),
+                            'values' => array(
+                              array(
+                                'enum'  => intVal($value['value']),
+                                'value' => strVal($value['value_string']),
+                              ),
+                            ),
+                          ),
+                    );             
+            }
+        
+        }
+        
+        $parameters['request']['unsorted']['add'][0]['data']['contacts'][0]['notes']=
+        array( 
+              array(
+                'note_type' => ( $outcoming===true ? 11: 10 ),
+                'element_type' => ( strlen($contact_name)>0 ? 1:2 ),  
+                'text' => json_encode([
+                  'UNIQ' => strVal($note_id), 
+                  'LINK' => strVal($record_link),
+                  'PHONE' => ( $outcoming===true ? $phone_to : $phone_from ), 
+                  'DURATION' => 0, 
+                  'SRC' => 'src', 
+                ])
+             )
+        );
+
+   }
+    
+
+   
+   
 
    $parameters_json=json_encode($parameters);
 
    $http_requester->{'send_method'}='POST';
-   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/leads/set';
+   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).
+                            '.amocrm.ru/api/unsorted/add/'.
+                            '?api_key='.($http_requester->{'USER_HASH'}).
+                            '&login='.urlencode($http_requester->{'USER_LOGIN'});
    $http_requester->{'parameters'}=$parameters_json;
+   $http_requester->{'header'}=array('Content-Type: application/json');
    
    $return_result=false;
    $return_result=$http_requester->request(); 
+   
+   $http_requester->{'header'}='';
    
    $result=$return_result;
    

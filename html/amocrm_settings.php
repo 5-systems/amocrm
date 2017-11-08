@@ -40,7 +40,21 @@
 
   $status_accepted_for_work='15037849';   
   $status_successful_realization='142';
-  $status_canceled='143'; 
+  $status_canceled='143';
+
+  $status_accepted_for_work_pipeline_id='618805';
+  $custom_field_address_type_value_missed_call='4139617';
+  $custom_field_address_type_value_string_missed_call='Пропущенный звонок';
+  $custom_field_address_type_value_site_call='4139619';
+  $custom_field_address_type_value_string_site_call='Звонок с сайта';
+  $custom_field_address_type_value_internet_shop_call='4139621';
+  $custom_field_address_type_value_string_internet_shop_call='Интернет-магазин';
+  $custom_field_address_type_value_internet_shop_call='4139623';
+  $custom_field_address_type_value_string_internet_shop_call='Чат';
+  $phone_prefix_presentation='+7';
+
+  $amocrm_users=array();
+  $amocrm_users[1509886]=array('id'=>'1509886', 'name'=>'Имя пользователя', 'user_phone'=>'100');
 
   // Database
   $amocrm_database_user='amocrmuser';
