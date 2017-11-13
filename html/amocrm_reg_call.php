@@ -24,6 +24,7 @@
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
 
+   
    require_once('amocrm_settings.php');
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
@@ -353,10 +354,12 @@
 
    
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
-   if( strlen($user_phone)===0 ) {
+   if( strlen($user_phone)===0
+       && $OutcomingCall!=='1' ) {
+           
        $users_for_notification=$amocrm_users;      
    }
-   else {
+   elseif( strlen($user_id)>0 ) {
         $users_for_notification=array();
         $users_for_notification[]=array('id'=>$user_id,
                                          'name'=>$user_name,
@@ -380,10 +383,10 @@
         $query_text="";
         $query_text.=" insert into calls ";
         $query_text.=  " (date, uniqueid, client_phone, user_phone, user_id, user_name,"
-                      ."  lead_id, file_path, client_name, new_client, new_lead, outcoming) ";
+                      ."  lead_id, file_path, client_name, new_client, new_lead, outcoming, missed) ";
         $query_text.=  " values";
         $query_text.=   "('&date&', '&uniqueid&', '&client_phone&', '&user_phone&', '&user_id&', '&user_name&',"
-                       ." '&lead_id&', '&file_path&', '&client_name&', &new_client&, &new_lead&, &outcoming&); ";
+                       ." '&lead_id&', '&file_path&', '&client_name&', &new_client&, &new_lead&, &outcoming&, &missed&); ";
 
 
         $query_text=set_parameter('date', $current_date, $query_text);
@@ -398,6 +401,7 @@
         $query_text=set_parameter('new_client', ($contact_created===true) ? 'true':'false', $query_text);
         $query_text=set_parameter('new_lead', ($lead_created===true) ? 'true':'false', $query_text);
         $query_text=set_parameter('outcoming', ($OutcomingCall==='1') ? 'true':'false', $query_text);
+        $query_text=set_parameter('missed', ($MissedCall==='1') ? 'true':'false', $query_text);
 
 
         $db_status=mysql_query($query_text);

@@ -20,11 +20,10 @@
   if( !isset($phone) ) $phone='';
   if( !isset($login) ) $login='';
   if( !isset($password) ) $password='';
-
-
-  write_log($_REQUEST, $amocrm_log_file);
   
   require_once('amocrm_settings.php');
+  
+  write_log($_REQUEST, $amocrm_log_file);
 
   $result='';  
 
@@ -38,7 +37,7 @@
    $http_requester->{'USER_HASH'}=$amocrm_USER_HASH;
    $http_requester->{'amocrm_account'}=$amocrm_account;
    $http_requester->{'coockie_file'}=$amocrm_coockie_file;
-   $http_requester->{'amocrm_log_file'}=$amocrm_log_file;  
+   $http_requester->{'log_file'}=$amocrm_log_file;  
   
    $user_phone=get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester);    
   } // user_id ok

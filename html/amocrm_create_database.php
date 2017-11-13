@@ -44,6 +44,7 @@
    $query_text.="   new_client boolean NOT NULL DEFAULT false,";
    $query_text.="   new_lead boolean NOT NULL DEFAULT false,";
    $query_text.="   outcoming boolean NOT NULL DEFAULT false,";
+   $query_text.="   missed boolean NOT NULL DEFAULT false,";
    $query_text.="   file_path text NOT NULL DEFAULT '',";
 	 
    $query_text.="   INDEX calls_date_index USING BTREE (date),";

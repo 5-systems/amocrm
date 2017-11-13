@@ -14,6 +14,7 @@
       $user_id='';
    }
    
+   
    //write_log($_REQUEST, $amocrm_log_file, 'QUERY');   
    
    if( strlen($user_id)===0 ) exit($result);
@@ -52,7 +53,8 @@
       $query_text.=  " calls.client_name, ";      
       $query_text.=  " calls.new_client, ";      
       $query_text.=  " calls.new_lead, ";
-      $query_text.=  " calls.outcoming ";
+      $query_text.=  " calls.outcoming, ";
+      $query_text.=  " calls.missed ";
       $query_text.=" from ";
       $query_text.= " calls as calls ";
       $query_text.=" where ";
@@ -89,46 +91,51 @@
 	    $selected_uniqueid=strVal($row["uniqueid"]);
 	    $selected_user_id=strVal($row["user_id"]);	    
 	    
-            $result_row_array["from"]='';
-            $result_row_array["to"]='';
-            if( strVal($row["outcoming"])==='1' ) {
-               $result_row_array["from"].=$result_row_array["user_name"];
+        $result_row_array["from"]='';
+        $result_row_array["to"]='';
+        if( strVal($row["outcoming"])==='1' ) {
+           $result_row_array["from"].=$result_row_array["user_name"];
 
-               $result_row_array["to"].=$result_row_array["client_name"];
+           $result_row_array["to"].=$result_row_array["client_name"];
 
-               $client_name_from_request=remove_symbols($result_row_array["client_name"]);
-               if( strlen($client_name_from_request)<10 ) $result_row_array["to"].=' ('.$result_row_array["client_phone"].')';
-            }
-            else {
-               $result_row_array["from"].=$result_row_array["client_name"];
+           $client_name_from_request=remove_symbols($result_row_array["client_name"]);
+           if( strlen($client_name_from_request)<10 ) $result_row_array["to"].=' ('.$result_row_array["client_phone"].')';
+        }
+        else {
+           $result_row_array["from"].=$result_row_array["client_name"];
 
-               $client_name_from_request=remove_symbols($result_row_array["client_name"]);
-               if( strlen($client_name_from_request)<10 ) $result_row_array["from"].=' ('.$result_row_array["client_phone"].')';
+           $client_name_from_request=remove_symbols($result_row_array["client_name"]);
+           if( strlen($client_name_from_request)<10 ) $result_row_array["from"].=' ('.$result_row_array["client_phone"].')';
 
+           if( strVal($row["missed"])==='1' ) {
+               $result_row_array["to"]='пропущен';
+           }
+           else {
                $result_row_array["to"].=$result_row_array["user_name"];
-            }
+           }
+        }
 
-            $client_status_str='';
-            $new_client_str=' перв.';
-            if( strlen($result_row_array["new_client"])===1
-                && strVal($result_row_array["new_client"])==='0' ) {
+        $client_status_str='';
+        $new_client_str=', перв.';
+        if( strlen($result_row_array["new_client"])===1
+            && strVal($result_row_array["new_client"])==='0' ) {
 
-               $new_client_str=' повт.';
-            }
+           $new_client_str=', повт.';
+        }
 
-            $client_status_str.=$new_client_str;
+        $client_status_str.=$new_client_str;
 
-            $new_lead_str=', новая сделка';
-            if( strlen($result_row_array["new_lead"])===1
-                && strVal($result_row_array["new_lead"])==='0' ) {
+        $new_lead_str=', новая сделка';
+        if( strlen($result_row_array["new_lead"])===1
+            && strVal($result_row_array["new_lead"])==='0' ) {
 
-               $new_lead_str=', продолж. перег.';
-            }
+           $new_lead_str=', продолж. перег.';
+        }
 
-            $client_status_str.=$new_lead_str;
+        $client_status_str.=$new_lead_str;
 
-            $result_row_array["to"].=$client_status_str;
-            
+        $result_row_array["to"].=$client_status_str;
+        
 	    break;
 	 }
 	 
