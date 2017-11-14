@@ -32,7 +32,8 @@
   $custom_field_user_phone='1779061';
   $custom_field_do_not_create_lead='1779705';
   $custom_field_address_type='1775865';
-  $custom_field_address_type_value_phone_call='4139615'; 
+  $custom_field_address_type_value_phone_call='4139615';
+  $custom_field_address_type_value_string_phone_call='Телефонный звонок'; 
   $custom_field_phone_id="1133906";
   $custom_field_phone_enum="2591354";
   $custom_field_email_id="1133908";
