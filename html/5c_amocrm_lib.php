@@ -1065,12 +1065,10 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
 
 
 
-function create_lead($name, $status_id, $responsible_user_id, $company_id, $amocrm_http_requester=null,
-		     $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+function create_lead($name, $status_id, $responsible_user_id, $company_id, $fields=array(), $amocrm_http_requester=null,
+		             $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
 
    global $custom_field_address_type;
-   global $custom_field_address_type_value_phone_call;
-   global $custom_field_address_type_value_string_phone_call;
 		    
    $result=false;
 
@@ -1101,23 +1099,29 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $amoc
 	)
    );
    
-   if( isset($custom_field_address_type)
-       && isset($custom_field_address_type_value_phone_call)
-       && isset($custom_field_address_type_value_string_phone_call) ) {
+   reset($fields);
+   while( list($key, $value)=each($fields) ) {
        
-      $parameters['request']['leads']['add'][0]['custom_fields']=array(
-				    array(
-					  'id'=>intval($custom_field_address_type),
-					  'values'=>array(
-							    array(
-                                                                'enum'=>intval($custom_field_address_type_value_phone_call),
-                                                                'value'=>$custom_field_address_type_value_string_phone_call
-							    )
-						    )
-					     )
-				   );
-   }    
-
+       if( isset($custom_field_address_type)
+           && strVal($key)===strVal($custom_field_address_type) ) {
+               
+               
+               $parameters['request']['leads']['add'][0]['custom_fields']=array(
+                   array(
+                       'id'=>intval($custom_field_address_type),
+                       'values'=>array(
+                           array(
+                               'enum'=>intval($value['value']),
+                               'value'=>strval($value['value_string'])
+                           )
+                       )
+                   )
+               );
+                             
+           }
+           
+   }
+      
    $parameters_json=json_encode($parameters);
 
    $http_requester->{'send_method'}='POST';

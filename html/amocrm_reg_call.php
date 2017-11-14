@@ -1,6 +1,5 @@
 <?php
 
-   // version 08.11.2017
 
    date_default_timezone_set('Etc/GMT-3');
 
@@ -23,7 +22,6 @@
    if(!isset($MissedCall)) $MissedCall='0';
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
-
    
    require_once('amocrm_settings.php');
    require_once('5c_amocrm_lib.php');
@@ -432,21 +430,73 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
                            $OutcomingCall, $client_phone, $MissedCall, $FromWeb) {
     
     global $status_accepted_for_work;
+    global $custom_field_address_type;
+    global $custom_field_address_type_value_site_call;
+    global $custom_field_address_type_value_string_site_call;
+    global $custom_field_address_type_value_missed_call;
+    global $custom_field_address_type_value_string_missed_call;
+    global $custom_field_address_type_value_phone_call;
+    global $custom_field_address_type_value_string_phone_call;
     
     $result='';
     
+    $fields=array();
     $name='';
     if( $FromWeb==='1' ) {
         $name='С сайта ';
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_site_call)
+            && isset($custom_field_address_type_value_string_site_call) ) {
+                
+            $fields[intVal($custom_field_address_type)]=
+                array(
+                    'value'=>intVal($custom_field_address_type_value_site_call),
+                    'value_string'=>strVal($custom_field_address_type_value_string_site_call)
+                );                
+        }
     }
     elseif( $MissedCall==='1' ) {
         $name='Пропущенный ';
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_missed_call)
+            && isset($custom_field_address_type_value_string_missed_call) ) {
+                
+                $fields[intVal($custom_field_address_type)]=
+                array(
+                    'value'=>intVal($custom_field_address_type_value_missed_call),
+                    'value_string'=>strVal($custom_field_address_type_value_string_missed_call)
+                );
+         }        
     }
     elseif( $OutcomingCall==='1' ) {
-        $name='Исходящий ';   
+        $name='Исходящий ';
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_phone_call)
+            && isset($custom_field_address_type_value_string_phone_call) ) {
+                
+                $fields[intVal($custom_field_address_type)]=
+                array(
+                    'value'=>intVal($custom_field_address_type_value_phone_call),
+                    'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+                );
+        }       
     }    
     else {
-        $name='Входящий ';        
+        $name='Входящий ';
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_phone_call)
+            && isset($custom_field_address_type_value_string_phone_call) ) {
+                
+                $fields[intVal($custom_field_address_type)]=
+                array(
+                    'value'=>intVal($custom_field_address_type_value_phone_call),
+                    'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+                );
+        }
     }
    
     if( !is_null($client_contact_name) ) {
@@ -463,7 +513,7 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
     $name.='от '.$current_time_string;
 
-    $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $http_requester);     
+    $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $fields, $http_requester);     
     if( $return_result!==false ) {
 
        $decoded_result=json_decode($return_result, true);
@@ -557,39 +607,63 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     
     if( $FromWeb==='1' ) {
         $name='C сайта ';
-        $fields[intVal($custom_field_address_type)]=
-                array(
-                    'value'=>$custom_field_address_type_value_site_call,
-                    'value_string'=>$custom_field_address_type_value_string_site_call
-                );
         
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_site_call)
+            && isset($custom_field_address_type_value_string_site_call) ) {
+           
+            $fields[intVal($custom_field_address_type)]=
+            array(
+                'value'=>intVal($custom_field_address_type_value_site_call),
+                'value_string'=>strVal($custom_field_address_type_value_string_site_call)
+            );           
+        }
+       
         $phone_from_with_name.='с сайта ';
     }
     elseif( $MissedCall==='1' ) {
         $name='Пропущенный ';
-        $fields[intVal($custom_field_address_type)]=
-                array(
-                    'value'=>$custom_field_address_type_value_missed_call,
-                    'value_string'=>$custom_field_address_type_value_string_missed_call
-                );
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_missed_call)
+            && isset($custom_field_address_type_value_string_missed_call) ) {
+                
+            $fields[intVal($custom_field_address_type)]=
+                    array(
+                        'value'=>intVal($custom_field_address_type_value_missed_call),
+                        'value_string'=>strVal($custom_field_address_type_value_string_missed_call)
+                    );                
+            }
         
         $phone_from_with_name.='пропущенный ';
     }
     elseif( $OutcomingCall==='1' ) {
         $name='Исходящий ';
-        $fields[intVal($custom_field_address_type)]=
-                array(
-                    'value'=>$custom_field_address_type_value_phone_call,
-                    'value_string'=>$custom_field_address_type_value_string_phone_call
-                );   
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_phone_call)
+            && isset($custom_field_address_type_value_string_phone_call) ) {
+                
+            $fields[intVal($custom_field_address_type)]=
+                    array(
+                        'value'=>intVal($custom_field_address_type_value_phone_call),
+                        'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+                    );                              
+            }  
     }    
     else {
         $name='Входящий ';
-        $fields[intVal($custom_field_address_type)]=
-                array(
-                    'value'=>$custom_field_address_type_value_phone_call,
-                    'value_string'=>$custom_field_address_type_value_string_phone_call
-                );        
+        
+        if( isset($custom_field_address_type)
+            && isset($custom_field_address_type_value_phone_call)
+            && isset($custom_field_address_type_value_string_phone_call) ) {
+                
+            $fields[intVal($custom_field_address_type)]=
+                    array(
+                        'value'=>intVal($custom_field_address_type_value_phone_call),
+                        'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+                    );                
+            }       
     }
 
     $fields[intVal($custom_field_phone_id)]=

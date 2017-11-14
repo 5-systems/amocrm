@@ -214,7 +214,19 @@
       
       $name.='от '.$current_time_string;
       
-      $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $http_requester);     
+      $fields=array();
+      if( isset($custom_field_address_type)
+          && isset($custom_field_address_type_value_phone_call)
+          && isset($custom_field_address_type_value_string_phone_call) ) {
+              
+          $fields[intVal($custom_field_address_type)]=
+          array(
+              'value'=>intVal($custom_field_address_type_value_phone_call),
+              'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+          );
+      }
+      
+      $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $fields, $http_requester);     
       if( $return_result!==false ) {
    
 	 $decoded_result=json_decode($return_result, true);
