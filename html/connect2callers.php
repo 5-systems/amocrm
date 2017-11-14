@@ -216,13 +216,13 @@
       
       $fields=array();
       if( isset($custom_field_address_type)
-          && isset($custom_field_address_type_value_phone_call)
-          && isset($custom_field_address_type_value_string_phone_call) ) {
+          && isset($custom_field_address_type_value_outcoming_call)
+          && isset($custom_field_address_type_value_string_outcoming_call) ) {
               
           $fields[intVal($custom_field_address_type)]=
           array(
-              'value'=>intVal($custom_field_address_type_value_phone_call),
-              'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+              'value'=>intVal($custom_field_address_type_value_outcoming_call),
+              'value_string'=>strVal($custom_field_address_type_value_string_outcoming_call)
           );
       }
       

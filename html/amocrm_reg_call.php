@@ -437,6 +437,8 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
     global $custom_field_address_type_value_string_missed_call;
     global $custom_field_address_type_value_phone_call;
     global $custom_field_address_type_value_string_phone_call;
+    global $custom_field_address_type_value_outcoming_call;
+    global $custom_field_address_type_value_string_outcoming_call;
     
     $result='';
     
@@ -474,13 +476,13 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
         $name='Исходящий ';
         
         if( isset($custom_field_address_type)
-            && isset($custom_field_address_type_value_phone_call)
-            && isset($custom_field_address_type_value_string_phone_call) ) {
+            && isset($custom_field_address_type_value_outcoming_call)
+            && isset($custom_field_address_type_value_string_outcoming_call) ) {
                 
                 $fields[intVal($custom_field_address_type)]=
                 array(
-                    'value'=>intVal($custom_field_address_type_value_phone_call),
-                    'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+                    'value'=>intVal($custom_field_address_type_value_outcoming_call),
+                    'value_string'=>strVal($custom_field_address_type_value_string_outcoming_call)
                 );
         }       
     }    
@@ -554,6 +556,8 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     global $custom_field_address_type_value_string_missed_call;
     global $custom_field_address_type_value_phone_call;
     global $custom_field_address_type_value_string_phone_call;
+    global $custom_field_address_type_value_outcoming_call;
+    global $custom_field_address_type_value_string_outcoming_call;
        
     $result='';
        
@@ -641,13 +645,13 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
         $name='Исходящий ';
         
         if( isset($custom_field_address_type)
-            && isset($custom_field_address_type_value_phone_call)
-            && isset($custom_field_address_type_value_string_phone_call) ) {
+            && isset($custom_field_address_type_value_outcoming_call)
+            && isset($custom_field_address_type_value_string_outcoming_call) ) {
                 
             $fields[intVal($custom_field_address_type)]=
                     array(
-                        'value'=>intVal($custom_field_address_type_value_phone_call),
-                        'value_string'=>strVal($custom_field_address_type_value_string_phone_call)
+                        'value'=>intVal($custom_field_address_type_value_outcoming_call),
+                        'value_string'=>strVal($custom_field_address_type_value_string_outcoming_call)
                     );                              
             }  
     }    
