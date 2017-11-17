@@ -1,11 +1,12 @@
 <?php
 
-  // version 08.11.2017
+  // version 17.11.2017
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
 
   date_default_timezone_set('Etc/GMT-3');
+  ini_set("default_socket_timeout", 600);
   
   
  class amocrm_register_call {
@@ -494,6 +495,10 @@ class amocrm_http_requester {
   public $parameters;
   public $log_file;
   public $header;
+  public $max_number_get_parameters;
+  public $max_number_rows;
+  public $max_number_request_cycles;
+  public $sleep_time_after_request_microsec;
   
   // class use
   public $connected;
@@ -501,6 +506,10 @@ class amocrm_http_requester {
   
   function __construct() {
       $this->connected=false;
+      $this->max_number_get_parameters=490;
+      $this->max_number_rows=490;
+      $this->max_number_request_cycles=21;
+      $this->sleep_time_after_request_microsec=300000;
   }
   
   public function connect() {
@@ -518,9 +527,10 @@ class amocrm_http_requester {
       $response=$decoded_result['response'];
       
       if( isset($response['auth']) ) {
-	$result=true;
-	$this->connected=true;
-	write_log('Authorization: ок', $this->log_file);
+    	$result=true;
+    	$this->connected=true;
+    	write_log('Authorization: ок', $this->log_file);
+    	usleep($this->sleep_time_after_request_microsec);
       }
     
     }
@@ -536,10 +546,174 @@ class amocrm_http_requester {
     $result=false;
 
     // Request
-    $return_result=amocrm_request($this->send_method, $this->url, $this->parameters, $this->log_file, $this->coockie_file, $this->header);
-    if( $return_result!==false ) {
-      $result=$return_result;
-    }    
+    $request_parameters=array();
+    $continue_cycle=false;
+    $sum_number_objects=0;
+    $cycle_counter=0;
+    $divided_request_result_array=false;
+    
+    $divided_request=false;
+    $limited_request=false;
+    
+    $initial_parameters=$this->parameters;
+    if( (is_array($initial_parameters)
+         && array_key_exists('id', $initial_parameters))
+         || stripos($this->url, 'id=')!==false ) {
+            
+         if( is_array( $initial_parameters['id'] )
+             && count( $initial_parameters['id'] )>($this->max_number_get_parameters) ) {   
+            
+             $divided_request=true;
+             $continue_cycle=true;
+         }        
+    }
+    else {
+    
+        $url_limit_request_array=array();
+        $url_limit_request_array[]='/contacts/list';
+        $url_limit_request_array[]='/leads/list';
+        $url_limit_request_array[]='/company/list';
+        $url_limit_request_array[]='/customers/list';
+        $url_limit_request_array[]='/transactions/list';
+        $url_limit_request_array[]='/tasks/list';
+        $url_limit_request_array[]='/notes/list';
+        
+        // If request is not limited, limit it
+        if( strpos($this->url, 'limit_rows')===false
+            && strpos($this->url, 'limit_offset')===false
+            && ( !is_array($this->parameters)
+                 || ( !array_key_exists('limit_rows', $this->parameters)
+                      && !array_key_exists('limit_offset', $this->parameters) ) ) ) {
+                     
+            reset($url_limit_request_array);
+            while( list($key, $value)=each($url_limit_request_array) ) {
+                if( strpos($this->url, $value)!==false ) {
+                    $limited_request=true;
+                    $continue_cycle=true;
+                    break;
+                }
+            }
+                
+        }
+    
+    }
+    
+    
+    while( true ) {
+    
+        $cycle_counter+=1;
+        
+        if( $divided_request===true ) {
+                
+            $request_parameters=array();
+            $request_parameters=array_merge($request_parameters, $initial_parameters);
+            
+            $id_array=array();
+            $uppper_index=min($sum_number_objects+$this->max_number_get_parameters-1, count($initial_parameters['id'])-1);
+            for( $i=$sum_number_objects; $i<=$uppper_index; $i++ ) {
+                $id_array[]=$request_parameters['id'][$i]; 
+            }
+            
+            $request_parameters['id']=$id_array;
+            $sum_number_objects+=count($id_array);
+            
+            if( $sum_number_objects>=count( $initial_parameters['id'] ) ) $continue_cycle=false;
+        }
+        elseif( $limited_request===true ) {
+            
+            $request_parameters=$initial_parameters;
+            $request_parameters['limit_rows']=$this->max_number_rows;
+            $request_parameters['limit_offset']=($this->max_number_rows)*($cycle_counter-1);
+                        
+        }
+        else {
+            $request_parameters=$initial_parameters;       
+        }
+        
+        $return_result=amocrm_request($this->send_method, $this->url, $request_parameters, $this->log_file, $this->coockie_file, $this->header);
+        if( $return_result!==false ) {
+            
+          if( $divided_request===true
+              || $limited_request===true ) {
+              
+              $divided_request_result=json_decode($return_result, true);
+              if( is_array($divided_request_result_array)
+                  && array_key_exists('response', $divided_request_result_array) ) {
+                  
+                  if( is_array($divided_request_result)
+                      && array_key_exists('response', $divided_request_result) )  {
+                      
+                      reset($divided_request_result_array['response']);    
+                      while( list($key, $value)=each( $divided_request_result_array['response'] ) ) {
+                          if( array_key_exists($key, $divided_request_result['response'])
+                              && !is_numeric($key)
+                              && is_array($divided_request_result_array['response'][$key])
+                              && is_array($divided_request_result['response'][$key]) ) {
+                                  
+                              $divided_request_result_array['response'][$key]=array_merge($divided_request_result_array['response'][$key], $divided_request_result['response'][$key]);
+                          }
+                      }
+                  }
+              }
+              elseif( is_array($divided_request_result)
+                      && array_key_exists('response', $divided_request_result) ) {
+                  
+                  $divided_request_result_array=$divided_request_result;
+              }
+              
+              if( $limited_request===true ) {
+                                        
+                  if( !is_array($divided_request_result)
+                      || !array_key_exists('response', $divided_request_result)
+                      || !is_array($divided_request_result['response'])
+                      || count($divided_request_result['response'])===0 ) {
+                          
+                      $continue_cycle=false;
+                  }
+                  else {
+                      
+                      $array_of_objects_is_found=false;
+                      reset($divided_request_result['response']);
+                      while( list($key, $value)=each($divided_request_result['response']) ) {
+                          if( !is_numeric($key)
+                              && is_array($value) ) {
+                           
+                              $array_of_objects_is_found=true;
+                                                                    
+                              if( count($value)<($this->max_number_rows) ) {
+                                  $continue_cycle=false;
+                                  break;
+                              }                                                           
+                          }                          
+                      }
+                      
+                      if( $array_of_objects_is_found===false ) $continue_cycle=false;                                           
+                  }                               
+              }
+              
+          }
+          else {  
+            $result=$return_result;
+          }  
+            
+        }
+        
+        usleep($this->sleep_time_after_request_microsec);
+        
+        if( $cycle_counter>=($this->max_number_request_cycles) ) $continue_cycle=false;
+        
+        if( $continue_cycle!==true ) {
+            break;
+        }
+        
+    }
+    
+    if( ( $divided_request===true
+          || $limited_request===true )
+        && is_array($divided_request_result_array) ) {
+        
+        $result=json_encode($divided_request_result_array);
+    }
 	  
     return($result);     
   }

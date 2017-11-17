@@ -109,6 +109,16 @@
         $http_requester->{'header'}=array('if-modified-since: '.$get_leads_from_date);
         $leads_array=get_leads_info('', $http_requester);
 
+        $leads_array_for_sort=array();
+        reset($leads_array);
+        while( list($key, $value)=each($leads_array) ) {
+           if( array_key_exists('date_create', $value) ) $leads_array_for_sort[$key]=$value['date_create'];
+        }
+
+        if( count($leads_array_for_sort)===count($leads_array) ) {
+            array_multisort($leads_array_for_sort, SORT_DESC, $leads_array);
+        }
+
         reset($leads_array);
         while( list($key, $value)=each($leads_array) ) {
            if( $value['status_id']!==$status_successful_realization
