@@ -27,6 +27,7 @@
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
 
+   
    // Input parameters
    $call_unix_time='';
    if( strlen($CallDate)===14 ) $call_unix_time=strtotime($CallDate);
@@ -88,6 +89,7 @@
     $registrator->{'record_link'}=$record_link;
     $registrator->{'outcoming_call'}=$OutcomingCall;
     $registrator->{'user_phone'}=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
+    $registrator->{'user_id'}=$user_id;
     $registrator->{'custom_field_user_phone'}=$custom_field_user_phone;
     $registrator->{'custom_field_user_amo_crm'}=$custom_field_user_amo_crm;
     $registrator->{'phone_prefix'}=$phone_prefix_presentation;
@@ -352,6 +354,7 @@
 
    
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
+   $users_for_notification=array();
    if( strlen($user_phone)===0
        && $OutcomingCall!=='1' ) {
            

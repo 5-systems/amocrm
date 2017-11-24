@@ -34,6 +34,7 @@
   public $custom_field_email_id;
   public $custom_field_email_enum;
   public $user_phone;
+  public $user_id;
   public $custom_field_user_phone;
   public $custom_field_user_amo_crm;
   public $phone_prefix;
@@ -171,7 +172,36 @@
 	 $custom_fields_value[]=$emails;  
       }
       
-      $add_value=array( array("name"=>($this->phone_prefix.$parsed_phone).' '.$this->name, "custom_fields"=>$custom_fields_value) );
+      $responsible_user_id=0;
+      if( isset($this->user_id)
+          && is_numeric($this->user_id) 
+          && intVal($this->user_id)>0 ) {
+              
+          $responsible_user_id=intVal($this->user_id);
+      }
+      elseif( isset($this->user_phone)
+              && strlen($this->user_phone)>0
+              && strlen($this->custom_field_user_phone)>0
+              && strlen($this->custom_field_user_amo_crm)>0 ) {
+          
+          $user_info=get_user_info_by_user_phone($this->user_phone,
+                                                 $this->custom_field_user_amo_crm,
+                                                 $this->custom_field_user_phone,
+                                                 null,
+                                                 $this->amocrm_account,
+                                                 $this->coockie_file,
+                                                 $this->log_file,
+                                                 $this->USER_LOGIN,
+                                                 $this->USER_HASH);
+          
+          if( is_array($user_info) ) {
+              if( array_key_exists('user_id', $user_info) ) $responsible_user_id=$user_info['user_id'];
+          }
+      }
+      
+      $add_value=array( array("name"=>($this->phone_prefix.$parsed_phone).' '.$this->name,
+                              "responsible_user_id"=>$responsible_user_id,
+                              "custom_fields"=>$custom_fields_value) );
       
       $contacts_value=array( "add"=>$add_value );
       
@@ -1268,8 +1298,7 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
 	    'status_id'=>intval($status_id),
 	    'responsible_user_id'=>intval($responsible_user_id),
 	    'linked_company_id'=>strval($company_id),
-	    'created_user_id'=> 0,
-	    'responsable_user_id'=> 0
+	    'created_user_id'=> 0
 	)
    );
    

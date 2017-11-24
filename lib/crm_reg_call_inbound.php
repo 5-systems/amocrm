@@ -24,7 +24,8 @@
 	//registration in CRM
 	if( strlen($ExtNum)===0 ) {
 	    exit('error');
-	} elseif {
+	}
+	else {
 	    $url="http://127.0.0.1:80/amocrm/amocrm_reg_call.php";
 	    $url=$url."?Account=5systems&CallId=$CallId&CallerNumber=$CallerId&CalledNumber=$CalledId&CallDate=$CallDate&Link=$Link";
 
