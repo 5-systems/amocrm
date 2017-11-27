@@ -25,7 +25,8 @@
   $records_coeff_byte_to_sec_mp3_phone_station=0.000249303;
   $records_coeff_byte_to_sec_wav_phone_station=0.000062375;
   $write_log_cron=true;
-  
+  $clean_amocrm_phonestation_database=true;
+  $update_call_duration=true;  
 
   // Fields id
   $custom_field_user_amo_crm='1779045';

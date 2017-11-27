@@ -72,45 +72,6 @@
    }
    
    // Add grants
-   $asteriskuser_exists=false;
-   $query_text="";
-   $query_text.="select COUNT(*) as count_num FROM mysql.user as users where users.User='root';";
-   $db_status=mysql_query($query_text);
-   if(  $db_status===false ) {
-      exit('Cannot select users: '.mysql_error());   
-   }
-   else {
-
-      while($row = mysql_fetch_assoc($db_status)) {
-	 if( $row['count_num']>0 ) $asteriskuser_exists=true;    
-      }
-   
-   }
-   
-   if( $asteriskuser_exists===true ) {
- 
-      $query_text="";
-      $query_text.="grant all privileges on `amocrm_phonestation`.* to '&asteriskuser&'@'localhost' identified by '&asterisk_password&';";
-      $query_text=set_parameter('asteriskuser', $amocrm_database_asterisk_user, $query_text);
-      $query_text=set_parameter('asterisk_password', $amocrm_database_asterisk_password, $query_text);
-      
-      $db_status=mysql_query($query_text);
-      if( $db_status===false ) {
-	 exit("Cannot add all privileges to 'asteriskuser'@'localhost' : ".mysql_error());  
-      }
- 
-      $query_text="";
-      $query_text.="grant all privileges on `amocrm_phonestation`.* to '&asteriskuser&'@'%' identified by '&asterisk_password&';";
-      $query_text=set_parameter('asteriskuser', $amocrm_database_asterisk_user, $query_text);
-      $query_text=set_parameter('asterisk_password', $amocrm_database_asterisk_password, $query_text);
-      
-      $db_status=mysql_query($query_text);
-      if( $db_status===false ) {
-	 exit("Cannot add all privileges to 'asteriskuser'@'%' : ".mysql_error());  
-      }
-      
-   }
-   
    $query_text="";
    $query_text.="grant all privileges on `amocrm_phonestation`.* to '&amocrmuser&'@'localhost' identified by '&amocrmuser_password&';";
    $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
