@@ -70,8 +70,6 @@
   // Create database amocrm_phonestation
   $amocrm_database_root_user='root';
   $amocrm_database_root_password='pass_from_root';
-  $amocrm_database_asterisk_user='asteriskuser';
-  $amocrm_database_asterisk_password='amp109';
   
   // Callback
   $queue='997';
