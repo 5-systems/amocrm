@@ -23,7 +23,8 @@
   
   require_once('amocrm_settings.php');
   
-  write_log($_REQUEST, $amocrm_log_file);
+  write_log('blank_line', $amocrm_log_file, 'CONN2CALL');
+  write_log($_REQUEST, $amocrm_log_file, 'CONN2CALL');
 
   $result='';  
 
@@ -45,7 +46,7 @@
  
   write_log('User phone: '.$user_phone, $amocrm_log_file);
   if( strlen($user_phone)<3 ) {
-    write_log('internal phone is too short', $amocrm_log_file);
+    write_log('internal phone is too short', $amocrm_log_file, 'CONN2CALL');
     $result.="failed: internal phone too short ".$user_phone;
   }  
   
@@ -57,7 +58,7 @@
   
   write_log('client phone: '.$client_phone, $amocrm_log_file);
   if( strlen($client_phone)<3 ) {
-    write_log('client phone is too short', $amocrm_log_file);
+      write_log('client phone is too short', $amocrm_log_file, 'CONN2CALL');
     $result.="failed: client phone too short ".$client_phone;
   }
 
@@ -77,7 +78,7 @@
   }
  
   if( $connect_status===false ) {
-    write_log('Phone station connection failed', $amocrm_log_file);
+    write_log('Phone station connection failed', $amocrm_log_file, 'CONN2CALL');
     $result.="failed: phone station connection failed ";
   }
  
@@ -89,7 +90,7 @@
     $phone_connection->__submit_string("", 500000);
 
     $phone_connection->__submit_string("Action: Originate");
-    $phone_connection->__submit_string("Channel: Local/".$user_phone."@from-internal");
+    $phone_connection->__submit_string("Channel: SIP/".$user_phone);
     $phone_connection->__submit_string("Callerid: CRM ".$client_phone);
     $phone_connection->__submit_string("Context: crm_connect2callers_outbound");
     $phone_connection->__submit_string("Timeout: 30000");
@@ -109,7 +110,7 @@
 
     $phone_connection->__close_connection();
 
-    write_log('call to client: success', $amocrm_log_file);
+    write_log('call to client: success', $amocrm_log_file, CONN2CALL);
     $result.="success ";
   }
 
@@ -132,6 +133,8 @@
       $client_contact_name=$value['name'];
       break;
    }
+   
+   write_log('Search for contact, contact_id='.$client_contact.', company_id='.$client_company.', client_contact_name='.$client_contact_name, $amocrm_log_file, 'CONN2CALL');
   
   // Get company by phone
   $companies_array=array();
@@ -152,7 +155,9 @@
 	    $client_company=$value['company_id'];
 	    $client_company_name=$value['name'];
 	    break;
-      }      
+      }
+      
+      write_log('Search for company, company_id='.$client_company.', client_company_name='.$client_company_name, $amocrm_log_file, 'CONN2CALL');
   
   }
   
@@ -168,23 +173,40 @@
       reset($companies_array);
       while( list($key, $value)=each($companies_array) ) {
 	 
-	 if( is_array($value)
-	     && array_key_exists('create_lead', $value)
-	     && gettype($value['create_lead'])==='boolean' ) {
-	     
-	    $create_lead=$value['create_lead'];
-	    break;
-	 }   
+    	 if( is_array($value)
+    	     && array_key_exists('create_lead', $value)
+    	     && gettype($value['create_lead'])==='boolean' ) {
+    	     
+    	    $create_lead=$value['create_lead'];
+    	    break;
+    	 }   
 	    
-      }      
-      
+     }
+     
+     write_log('Check if need create lead, create_lead='.$create_lead, $amocrm_log_file, 'CONN2CALL');
+     
   }
   
   
    // Get leads
-   $leads_array=get_leads_info('', $http_requester);
-   $lead_id=null;
-   
+    $get_leads_from_date=date('d M Y H:i:s', time()-60*60*24*30);
+    $http_requester->{'header'}=array('if-modified-since: '.$get_leads_from_date);
+    
+    $leads_array=get_leads_info('', $http_requester);
+    $http_requester->{'header'}='';
+    
+    $lead_id=null;
+    
+    $leads_array_for_sort=array();
+    reset($leads_array);
+    while( list($key, $value)=each($leads_array) ) {
+      if( array_key_exists('date_create', $value) ) $leads_array_for_sort[$key]=$value['date_create'];
+    }
+    
+    if( count($leads_array_for_sort)===count($leads_array) ) {
+      array_multisort($leads_array_for_sort, SORT_DESC, $leads_array);
+    }
+  
    reset($leads_array);
    while( list($key, $value)=each($leads_array) ) {
       if( $value['status_id']!==$status_successful_realization
@@ -195,6 +217,10 @@
 	 $lead_id=$value['lead_id'];
 	 break;
       }
+   }
+   
+   if( !is_null($lead_id) ) {
+       write_log('Lead is found, lead_id='.$lead_id, $amocrm_log_file, 'CONN2CALL');
    }
       
 
@@ -229,21 +255,21 @@
       $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $fields, $http_requester);     
       if( $return_result!==false ) {
    
-	 $decoded_result=json_decode($return_result, true);
-	 if( is_array($decoded_result)
-	     && array_key_exists('response', $decoded_result)
-	     && is_array($decoded_result['response'])
-	     && array_key_exists('leads', $decoded_result['response'])
-	     && is_array($decoded_result['response']['leads'])
-	     && array_key_exists('add', $decoded_result['response']['leads'])
-	     && is_array($decoded_result['response']['leads']['add'])
-	     && count($decoded_result['response']['leads']['add'])>0 ) {
-	     
-	    write_log('lead is created', $amocrm_log_file);
-	 }
-	 else {
-	    write_log('lead is not created: '.$return_result, $amocrm_log_file);	 
-	 }
+    	 $decoded_result=json_decode($return_result, true);
+    	 if( is_array($decoded_result)
+    	     && array_key_exists('response', $decoded_result)
+    	     && is_array($decoded_result['response'])
+    	     && array_key_exists('leads', $decoded_result['response'])
+    	     && is_array($decoded_result['response']['leads'])
+    	     && array_key_exists('add', $decoded_result['response']['leads'])
+    	     && is_array($decoded_result['response']['leads']['add'])
+    	     && count($decoded_result['response']['leads']['add'])>0 ) {
+    	     
+    	     write_log('lead is created', $amocrm_log_file, 'CONN2CALL');
+    	 }
+    	 else {
+    	     write_log('lead is not created: '.$return_result, $amocrm_log_file, 'CONN2CALL');
+    	 }
    
       }
    

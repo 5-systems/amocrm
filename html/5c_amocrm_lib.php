@@ -1735,13 +1735,13 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
               array(
                 'note_type' => ( $outcoming===true ? 11: 10 ),
                 'element_type' => ( strlen($contact_name)>0 ? 1:2 ),  
-                'text' => json_encode([
+                'text' => json_encode(array(
                   'UNIQ' => strVal($note_id), 
                   'LINK' => strVal($record_link),
                   'PHONE' => ( $outcoming===true ? $phone_to : $phone_from ), 
                   'DURATION' => 0, 
                   'SRC' => 'src', 
-                ])
+                ))
              )
         );
 

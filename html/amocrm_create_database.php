@@ -73,7 +73,7 @@
    
    // Add grants
    $query_text="";
-   $query_text.="grant all privileges on `amocrm_phonestation`.* to '&amocrmuser&'@'localhost' identified by '&amocrmuser_password&';";
+   $query_text.="grant all privileges on `amocrm_phonestation`.* to '&amocrmuser&'@'%' identified by '&amocrmuser_password&';";
    $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
    $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);
    
@@ -83,7 +83,7 @@
    }
    
    $query_text="";
-   $query_text.="grant usage on *.* to '&amocrmuser&'@'localhost' identified by '&amocrmuser_password&';";
+   $query_text.="grant usage on *.* to '&amocrmuser&'@'%' identified by '&amocrmuser_password&';";
    $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
    $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);   
    

@@ -9,7 +9,7 @@
    @$CallDate=$_REQUEST['CallDate'];
    @$ContactInfo=$_REQUEST['ContactInfo'];
    @$MissedCall=$_REQUEST['MissedCall'];
-   @$OutcomingCall=$_REQUEST['OutcomingCall'];
+   @$OutcomingCall=$_REQUEST['Outcoming'];
    @$FromWeb=$_REQUEST['FromWeb'];
    @$Link=$_REQUEST['Link'];
    @$Account=$_REQUEST['Account'];
@@ -22,6 +22,8 @@
    if(!isset($MissedCall)) $MissedCall='0';
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
+
+   $LogLineId=$CallId;
    
    require_once('amocrm_settings.php');
    require_once('5c_amocrm_lib.php');
@@ -32,14 +34,17 @@
    $call_unix_time='';
    if( strlen($CallDate)===14 ) $call_unix_time=strtotime($CallDate);
 
-   $record_link=$url_records;
-   if( substr($record_link, -1)==='/' || substr($record_link, -1)==='\\' ) $record_link=substr($record_link, 0, strlen($record_link)-1);
-   $record_link.='/'.$Link;
+   $record_link='';
+   if( strlen($Link)>0 ) {
+   	$record_link=$url_records;
+   	if( substr($record_link, -1)==='/' || substr($record_link, -1)==='\\' ) $record_link=substr($record_link, 0, strlen($record_link)-1);
+   	$record_link.='/'.$Link;
+   }
 
    // Register call
    $current_time=time();
-   write_log('blank_line', $amocrm_log_file, 'REG_CALL');
-   write_log($_REQUEST, $amocrm_log_file, 'REG_CALL');
+   write_log('blank_line', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+   write_log($_REQUEST, $amocrm_log_file, 'REG_CALL '.$LogLineId);
 
    
    // Get user_id and user_name
@@ -63,7 +68,8 @@
       }
    }
 
-   
+   write_log('Search for user: user_id='.$user_id.' user_name='.$user_name, $amocrm_log_file, 'REG_CALL '.$LogLineId);  
+ 
     // Create call note
     $contact_created=false;
    
@@ -168,7 +174,7 @@
       break;
    }
   
-  write_log('Search for contact, contact_id='.$client_contact.', company_id='.$client_company, $amocrm_log_file, 'REG_CALL');
+  write_log('Search for contact, contact_id='.$client_contact.', company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);
 
   
   // Get company by phone
@@ -194,7 +200,7 @@
 	    break;
       }
       
-      write_log('Search for company, company_id='.$client_company, $amocrm_log_file, 'REG_CALL');  
+      write_log('Search for company, company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);  
   }
   
 
@@ -223,7 +229,13 @@
   
   
     // Get leads
+    $get_leads_from_date=date('d M Y H:i:s', time()-60*60*24*30);
+    $http_requester->{'header'}=array('if-modified-since: '.$get_leads_from_date);
+
     $leads_array=get_leads_info('', $http_requester);
+
+    $http_requester->{'header'}='';
+
     $lead_id=null;
 
     $leads_array_for_sort=array();
@@ -269,7 +281,7 @@
     }    
       
    if( !is_null($lead_id) ) {
-      write_log('Lead is found, lead_id='.$lead_id, $amocrm_log_file, 'REG_CALL');
+      write_log('Lead is found, lead_id='.$lead_id, $amocrm_log_file, 'REG_CALL '.$LogLineId);
    }
 
    
@@ -320,7 +332,7 @@
 	 $updated_fields=array("linked_leads_id"=>array( intVal($lead_id) ));
 	 $update_result=update_contact_info($parameters, $updated_fields, $http_requester);
 	 if( $update_result===false ) {
-	    write_log('Lead is not attached to contact, lead_id='.$lead_id.', contact_id='.$client_contact, $amocrm_log_file, 'REG_CALL');
+	    write_log('Lead is not attached to contact, lead_id='.$lead_id.', contact_id='.$client_contact, $amocrm_log_file, 'REG_CALL '.$LogLineId);
 	 }
 	 
       }
@@ -348,7 +360,8 @@
 
    $db_conn=mysql_connect($db_host, $amocrm_database_user, $amocrm_database_password);
    if( $db_conn===false ) {
-      write_log('Connection to database is failed', $amocrm_log_file, 'REG_CALL');
+      $result_message=mysql_error();
+      write_log('Connection to database is failed: '.$result_message, $amocrm_log_file, 'REG_CALL '.$LogLineId);
       exit($result);
    }
 
@@ -367,6 +380,7 @@
                                          'user_phone'=>$user_phone);
    }
    
+
    if( $db_conn!==false ) {
 
       $query_text="";
@@ -380,7 +394,7 @@
       
       reset($users_for_notification);
       while( list($key, $value)=each($users_for_notification) ) {
-          
+        
         $query_text="";
         $query_text.=" insert into calls ";
         $query_text.=  " (date, uniqueid, client_phone, user_phone, user_id, user_name,"
@@ -408,7 +422,7 @@
         $db_status=mysql_query($query_text);
         if( $db_status===false ) {
            $result_message=mysql_error();
-           write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'REG_CALL');
+           write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'REG_CALL '.$LogLineId);
         }
       
       }
@@ -419,7 +433,7 @@
       
    echo $CallId;
 
-   write_log('Finish ', $amocrm_log_file, 'REG_CALL');
+   write_log('Finish ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
    
 function set_parameter($parameter, $value, $template) {
     $function_result=$template;
@@ -534,10 +548,10 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
           $lead_id=strVal($decoded_result['response']['leads']['add'][0]['id']);
           $result=$lead_id;
 
-          write_log('Lead is created, lead_id='.$lead_id, $amocrm_log_file, 'REG_CALL');
+          write_log('Lead is created, lead_id='.$lead_id, $amocrm_log_file, 'REG_CALL '.$LogLineId);
        }
        else {
-          write_log('Lead is not created: '.$return_result, $amocrm_log_file, 'REG_CALL');	 
+          write_log('Lead is not created: '.$return_result, $amocrm_log_file, 'REG_CALL '.$LogLineId);	 
        }
 
     }    
@@ -742,10 +756,10 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
           $unsorted_id=strVal($decoded_result['response']['unsorted']['add']['data'][0]);
           $result=$unsorted_id;
 
-          write_log('Unsorted is created, unsorted_id='.$unsorted_id, $amocrm_log_file, 'REG_CALL');
+          write_log('Unsorted is created, unsorted_id='.$unsorted_id, $amocrm_log_file, 'REG_CALL '.$LogLineId);
        }
        else {
-          write_log('Unsorted is not created: '.$return_result, $amocrm_log_file, 'REG_CALL');	 
+          write_log('Unsorted is not created: '.$return_result, $amocrm_log_file, 'REG_CALL '.$LogLineId);	 
        }
 
     }    

@@ -2,6 +2,12 @@
 
    date_default_timezone_set('Etc/GMT-3');
 
+   if( count($_REQUEST)===0
+       && count($argv)>1 ) {
+
+       $_REQUEST['CallerNumber']=$argv[1];
+   }
+
    @$CallerNumber=$_REQUEST['CallerNumber'];
    
    require_once('amocrm_settings.php');
@@ -119,21 +125,46 @@
             array_multisort($leads_array_for_sort, SORT_DESC, $leads_array);
         }
 
-        reset($leads_array);
-        while( list($key, $value)=each($leads_array) ) {
-           if( $value['status_id']!==$status_successful_realization
-               && $value['status_id']!==$status_canceled
-               && array_key_exists( intval($value['contact_id']), $contacts_array) ) {
-
-              if( is_numeric($value['user_id'])
-                  && strlen($value['user_id'])>0 ) {
-
-                 $user_id=$value['user_id'];
-                 $lead_id=$value['lead_id'];
-                 $redirection_type='1';
-                 break;
-              }
-           }
+        if( !isset($user_id) ) {
+            
+            reset($leads_array);
+            while( list($key, $value)=each($leads_array) ) {
+               if( $value['status_id']!==$status_successful_realization
+                   && $value['status_id']!==$status_canceled
+                   && array_key_exists( intval($value['contact_id']), $contacts_array) ) {
+    
+                  if( is_numeric($value['user_id'])
+                      && strlen($value['user_id'])>0 ) {
+    
+                     $user_id=$value['user_id'];
+                     $lead_id=$value['lead_id'];
+                     $redirection_type='1';
+                     break;
+                  }
+               }
+            }
+        
+        }
+        
+        if( !isset($user_id) ) {
+            
+            reset($leads_array);
+            while( list($key, $value)=each($leads_array) ) {
+                if( $value['status_id']!==$status_successful_realization
+                    && $value['status_id']!==$status_canceled
+                    && array_key_exists( intval($value['company_id']), $companies_array) ) {
+                        
+                    if( is_numeric($value['user_id'])
+                        && strlen($value['user_id'])>0 ) {
+                            
+                        $user_id=$value['user_id'];
+                        $lead_id=$value['lead_id'];
+                        $redirection_type='1';
+                        break;
+                    }
+                }
+            }
+            
         }
                
         $http_requester->{'header'}='';

@@ -15,6 +15,7 @@
    }
    
    
+   //write_log('blank_line', $amocrm_log_file, 'QUERY');   
    //write_log($_REQUEST, $amocrm_log_file, 'QUERY');   
    
    if( strlen($user_id)===0 ) exit($result);
@@ -27,7 +28,7 @@
    
    $db_conn=mysql_connect($db_host, $amocrm_database_user, $amocrm_database_password);
    if( $db_conn===false ) {
-      //write_log('Connection to database is failed', $amocrm_log_file, 'QUERY');
+      write_log('Connection to database is failed', $amocrm_log_file, 'QUERY');
       exit($result);    
    } 
 
@@ -71,7 +72,7 @@
       $db_status=mysql_query($query_text);
       if( $db_status===false ) {
 	 $result_message=mysql_error();
-	 //write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'QUERY');
+	 write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'QUERY');
       }
       else {
 	 
@@ -158,7 +159,9 @@
 	 
       }
       
-   }      
+   }
+
+   if( strlen($result)>2 ) write_log('Result='.$result, $amocrm_log_file, 'QUERY');      
 
    echo $result;
 

@@ -34,17 +34,9 @@
   $custom_field_do_not_create_lead='1779705';
   $custom_field_address_type='1775865';
   $custom_field_address_type_value_phone_call='4139615';
-  $custom_field_address_type_value_string_phone_call='Телефонный звонок'; 
-  $custom_field_phone_id="1133906";
-  $custom_field_phone_enum="2591354";
-  $custom_field_email_id="1133908";
-  $custom_field_email_enum="2591366";
-
-  $status_accepted_for_work='15037849';   
-  $status_successful_realization='142';
-  $status_canceled='143';
-
-  $status_accepted_for_work_pipeline_id='618805';
+  $custom_field_address_type_value_string_phone_call='Входящий звонок';
+  $custom_field_address_type_value_outcoming_call='4150987';
+  $custom_field_address_type_value_string_outcoming_call='Исходящий звонок';
   $custom_field_address_type_value_missed_call='4139617';
   $custom_field_address_type_value_string_missed_call='Пропущенный звонок';
   $custom_field_address_type_value_site_call='4139619';
@@ -53,8 +45,17 @@
   $custom_field_address_type_value_string_internet_shop_call='Интернет-магазин';
   $custom_field_address_type_value_internet_shop_call='4139623';
   $custom_field_address_type_value_string_internet_shop_call='Чат';
-  $custom_field_address_type_value_outcoming_call='4150987';
-  $custom_field_address_type_value_string_outcoming_call='Исходящий звонок';
+  
+  $custom_field_phone_id="1133906";
+  $custom_field_phone_enum="2591354";
+  $custom_field_email_id="1133908";
+  $custom_field_email_enum="2591366";
+
+  $status_accepted_for_work='15037849';
+  $status_accepted_for_work_pipeline_id='618805';  
+  $status_successful_realization='142';
+  $status_canceled='143';
+
   $phone_prefix_presentation='+7';
 
   $amocrm_users=array();
