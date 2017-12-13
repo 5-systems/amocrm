@@ -132,13 +132,14 @@
       
       $return_result=amocrm_request('GET', $url, $parameters, $this->log_file, $this->coockie_file);
       if( $return_result!==false ) {
-	$decoded_result=json_decode($return_result, true);
-	$response=$decoded_result['response'];
-	
-	if( isset($response['contacts']) && count($response['contacts'])>0 && isset($response['contacts'][0]['id']) && is_numeric($response['contacts'][0]['id']) ) {
-	  $contact_id=$response['contacts'][0]['id'];
-	  write_log('Contact is found', $this->log_file);
-	}
+          
+    	$decoded_result=json_decode($return_result, true);
+    	$response=$decoded_result['response'];
+    	
+    	if( isset($response['contacts']) && count($response['contacts'])>0 && isset($response['contacts'][0]['id']) && is_numeric($response['contacts'][0]['id']) ) {
+    	  $contact_id=$response['contacts'][0]['id'];
+    	  write_log('Contact is found', $this->log_file);
+    	}
 	
       }
     }
@@ -1273,6 +1274,7 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
 		             $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
 
    global $custom_field_address_type;
+   global $custom_field_first_called_number;
 		    
    $result=false;
 
@@ -1302,28 +1304,44 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
 	)
    );
    
+   $parameters['request']['leads']['add'][0]['custom_fields']=array();
+   
    reset($fields);
    while( list($key, $value)=each($fields) ) {
-       
+            
        if( isset($custom_field_address_type)
            && strVal($key)===strVal($custom_field_address_type) ) {
-               
-               
-               $parameters['request']['leads']['add'][0]['custom_fields']=array(
-                   array(
-                       'id'=>intval($custom_field_address_type),
-                       'values'=>array(
-                           array(
-                               'enum'=>intval($value['value']),
-                               'value'=>strval($value['value_string'])
-                           )
+                              
+           $parameters['request']['leads']['add'][0]['custom_fields'][]=
+               array(
+                   'id'=>intval($custom_field_address_type),
+                   'values'=>array(
+                       array(
+                           'enum'=>intval($value['value']),
+                           'value'=>strval($value['value_string'])
                        )
-                   )
-               );
+               )
+           );
                              
-           }
+       }
            
+       if( isset($custom_field_first_called_number)
+           && strVal($key)===strVal($custom_field_first_called_number) ) {
+                             
+           $parameters['request']['leads']['add'][0]['custom_fields'][]=
+           array(
+               'id'=>intval($custom_field_first_called_number),
+               'values'=>array(                  
+                   array(
+                       'value'=>strval($value['value'])
+                   )
+               )
+           );
+               
+        }
+          
    }
+      
       
    $parameters_json=json_encode($parameters);
 
@@ -1616,6 +1634,7 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
    global $custom_field_phone_id;
    global $custom_field_phone_enum;  
    global $custom_field_address_type;
+   global $custom_field_first_called_number;
 		    
    $result=false;
 
@@ -1674,15 +1693,15 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
         )
     );
    
-   
+   $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields']=array();
+    
    reset($fields);
    while( list($key, $value)=each($fields) ) {
        
         if( isset($custom_field_address_type)
             && strVal($key)===strVal($custom_field_address_type) ) {
 
-           $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields']=
-                                array(
+           $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields'][]=
                                          array(
                                                'id'=>intval($custom_field_address_type),
                                                'values'=>array(
@@ -1691,10 +1710,24 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
                                                                        'value'=>strVal($value['value_string'])
                                                                  )
                                                          )
-                                        )
-                                       
-                                );
+                                         );
         }
+        
+        if( isset($custom_field_first_called_number)
+            && strVal($key)===strVal($custom_field_first_called_number) ) {
+                
+           $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields'][]=
+                array(
+                    'id'=>intval($custom_field_first_called_number),
+                    'values'=>array(
+                        array(
+                            'value'=>strval($value['value'])
+                        )
+                    )
+                );
+                
+        }
+       
    
    }
    

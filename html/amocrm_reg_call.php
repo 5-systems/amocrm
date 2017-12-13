@@ -12,16 +12,19 @@
    @$OutcomingCall=$_REQUEST['Outcoming'];
    @$FromWeb=$_REQUEST['FromWeb'];
    @$Link=$_REQUEST['Link'];
+   @$FirstCalledNumber=$_REQUEST['FirstCalledNumber'];
    @$Account=$_REQUEST['Account'];
    @$login=$_REQUEST['param_login'];
    @$password=$_REQUEST['param_password'];
-
+   
+   
    if( !isset($login) ) $login='';
    if( !isset($password) ) $password='';
    if(!isset($CalledNumber)) $CalledNumber='';
    if(!isset($MissedCall)) $MissedCall='0';
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
+   if(!isset($FirstCalledNumber)) $FirstCalledNumber='';
 
    $LogLineId=$CallId;
    
@@ -300,7 +303,7 @@
                                      $client_contact_name, $client_company,
                                      $client_company_name, $amocrm_log_file,
                                      $OutcomingCall, $parsed_client_phone,
-                                     $MissedCall, $FromWeb);
+                                     $MissedCall, $FromWeb, $FirstCalledNumber);
           
           if( strlen($lead_id)>0 ) $lead_created=true;
           
@@ -316,7 +319,7 @@
                                              $user_id, $client_contact,
                                              $client_contact_name, $client_company,
                                              $client_company_name, $amocrm_log_file,
-                                             $OutcomingCall, $MissedCall, $FromWeb);
+                                             $OutcomingCall, $MissedCall, $FromWeb, $FirstCalledNumber);
 
           
           if( strlen($unsorted_id)>0 ) $unsorted_created=true;
@@ -444,8 +447,10 @@ function set_parameter($parameter, $value, $template) {
 
 function create_lead_local($http_requester, $user_id, $client_contact_name,
                            $client_company, $client_company_name, $amocrm_log_file,
-                           $OutcomingCall, $client_phone, $MissedCall, $FromWeb) {
-    
+                           $OutcomingCall, $client_phone, $MissedCall, $FromWeb, $FirstCalledNumber) {
+
+    global $LogLineId;
+                               
     global $status_accepted_for_work;
     global $custom_field_address_type;
     global $custom_field_address_type_value_site_call;
@@ -456,6 +461,7 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
     global $custom_field_address_type_value_string_phone_call;
     global $custom_field_address_type_value_outcoming_call;
     global $custom_field_address_type_value_string_outcoming_call;
+    global $custom_field_first_called_number;
     
     $result='';
     
@@ -517,6 +523,17 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
                 );
         }
     }
+    
+    if( isset($custom_field_first_called_number)
+        && is_numeric($custom_field_first_called_number)
+        && strlen($FirstCalledNumber)>0 ) {
+            
+        $fields[intVal($custom_field_first_called_number)]=
+        array(
+            'value'=>strVal($FirstCalledNumber),
+            'value_string'=>strVal($FirstCalledNumber)
+        );
+    }
    
     if( !is_null($client_contact_name) ) {
        $name.=strval($client_contact_name).' ';     
@@ -561,8 +578,11 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
 
 function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id,  $client_contact, $client_contact_name,
-                               $client_company, $client_company_name, $amocrm_log_file, $OutcomingCall, $MissedCall, $FromWeb) {
-    
+                               $client_company, $client_company_name, $amocrm_log_file, $OutcomingCall, $MissedCall,
+                               $FromWeb, $FirstCalledNumber) {
+
+    global $LogLineId;
+                                   
     global $status_accepted_for_work_pipeline_id;   
     global $custom_field_phone_id;
     global $custom_field_phone_enum;  
@@ -575,7 +595,8 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     global $custom_field_address_type_value_string_phone_call;
     global $custom_field_address_type_value_outcoming_call;
     global $custom_field_address_type_value_string_outcoming_call;
-       
+    global $custom_field_first_called_number;
+    
     $result='';
        
     $fields=array();
@@ -694,7 +715,17 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
             );
     
         
-        
+    if( isset($custom_field_first_called_number)
+        && is_numeric($custom_field_first_called_number)
+        && strlen($FirstCalledNumber)>0 ) {
+            
+            $fields[intVal($custom_field_first_called_number)]=
+            array(
+                'value'=>strVal($FirstCalledNumber),
+                'value_string'=>strVal($FirstCalledNumber)
+            );
+    }
+            
     
     if( !is_null($client_contact_name) ) {
        $name.=strval($client_contact_name).' ';

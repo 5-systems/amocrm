@@ -31,6 +31,8 @@
   // Fields id
   $custom_field_user_amo_crm='1779045';
   $custom_field_user_phone='1779061';
+  $custom_field_first_called_number="1781769";
+
   $custom_field_do_not_create_lead='1779705';
   $custom_field_address_type='1775865';
   $custom_field_address_type_value_phone_call='4139615';
