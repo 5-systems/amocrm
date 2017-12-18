@@ -25,13 +25,6 @@
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
    if(!isset($FirstCalledNumber)) $FirstCalledNumber='';
-   
-   // Delete
-   $CallId='676283681';
-   $CallerNumber='9218264579';
-   $CalledNumber='907';
-   $MissedCall='0';
-   // End delete
 
    $LogLineId=$CallId;
    
