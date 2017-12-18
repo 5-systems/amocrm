@@ -25,6 +25,13 @@
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
    if(!isset($FirstCalledNumber)) $FirstCalledNumber='';
+   
+   // Delete
+   $CallId='676283681';
+   $CallerNumber='9218264579';
+   $CalledNumber='907';
+   $MissedCall='0';
+   // End delete
 
    $LogLineId=$CallId;
    
@@ -60,6 +67,7 @@
    $http_requester->{'amocrm_account'}=$amocrm_account;
    $http_requester->{'coockie_file'}=$amocrm_coockie_file;
    $http_requester->{'log_file'}=$amocrm_log_file;
+   $http_requester->{'custom_field_phone_id'}=$custom_field_phone_id;
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
    if( strlen($user_phone)>0 ) {
@@ -87,7 +95,8 @@
     $registrator->{'custom_field_phone_id'}=$custom_field_phone_id;   
     $registrator->{'custom_field_phone_enum'}=$custom_field_phone_enum; 
     $registrator->{'custom_field_email_id'}=$custom_field_email_id; 
-    $registrator->{'custom_field_email_enum'}=$custom_field_email_enum; 
+    $registrator->{'custom_field_email_enum'}=$custom_field_email_enum;
+    $registrator->{'http_requester'}=$http_requester;
 
     // From call
     $registrator->{'phone'}=($OutcomingCall==='1' ? $CalledNumber: $CallerNumber);

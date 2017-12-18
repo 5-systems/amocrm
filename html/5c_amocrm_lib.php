@@ -39,6 +39,7 @@
   public $custom_field_user_amo_crm;
   public $phone_prefix;
   public $create_contact;
+  public $http_requester;
   
   
   // read only
@@ -105,47 +106,127 @@
            
     }
     
-    // Authorization 
-    $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/auth.php?type=json';
-    $parameters=array('USER_LOGIN'=>$this->USER_LOGIN, 'USER_HASH'=>$this->USER_HASH);
+    $http_requester=null;
+    if( isset($this->http_requester) ) $http_requester=($this->http_requester);
     
-    $auth_status=false;
-    $return_result=amocrm_request('POST', $url, $parameters, $this->log_file, $this->coockie_file);
-    if( $return_result!==false ) {
-    
-      $decoded_result=json_decode($return_result, true);
-      $response=$decoded_result['response'];
-      
-      if( isset($response['auth']) ) {
-	$auth_status=true;
-	$this->connected=true;
-	write_log('Authorization: ок', $this->log_file);
-      }
-    
+    if( !isset($http_requester) ) {    
+        $http_requester=new amocrm_http_requester;
+        $http_requester->{'USER_LOGIN'}=$this->USER_LOGIN;
+        $http_requester->{'USER_HASH'}=$this->USER_HASH;
+        $http_requester->{'amocrm_account'}=$this->amocrm_account;
+        $http_requester->{'coockie_file'}=$this->coockie_file;
+        $http_requester->{'log_file'}=$this->log_file;
     }
+    
+    if( ($http_requester->connected)===false ) $http_requester->connect();
     
     // Get contact list
     $contact_id=0;
+    if( strlen($parsed_phone)===10
+        && isset($this->custom_field_phone_id)
+        && strlen($this->custom_field_phone_id)>0
+        && is_numeric($this->custom_field_phone_id) ) {
+        
+        if( ($http_requester->connected)===false ) $http_requester->connect();
+            
+        $parameters=array();
+        $parameters['type']='contact';
+        $parameters['query']=urlencode($parsed_phone);
+        $contacts_array=get_contact_info($parameters, $http_requester);
+        
+        // Additional filter by phone
+        $contacts_array_tmp=array();
+        reset($contacts_array);
+        while( list($key, $value)=each($contacts_array) ) {
+            if( is_array($value)
+                && array_key_exists('custom_fields', $value)
+                && is_array($value['custom_fields']) ) {
+                    
+                    $phone_is_found_in_contact=false;
+                    while( list($key_2, $value_2)=each($value['custom_fields']) ) {
+                        if( is_array($value_2)
+                            && array_key_exists('id', $value_2)
+                            && strVal($value_2['id'])===strVal($this->custom_field_phone_id)
+                            && array_key_exists('values', $value_2)
+                            && is_array($value_2['values']) ) {
+                                
+                                $phone_values=$value_2['values'];
+                                foreach($phone_values as $value_3) {
+                                    if( is_array($value_3)
+                                        && array_key_exists('value', $value_3)
+                                        && strpos( remove_symbols($value_3['value']), $parsed_phone)!==false ) {
+                                            
+                                            $contacts_array_tmp[$key]=$value;
+                                            $phone_is_found_in_contact=true;
+                                            break;
+                                        }
+                                        
+                                }
+                            }
+                            
+                            
+                            if( $phone_is_found_in_contact===true ) break;
+                    }
+                }
+        }
+        
+        $contacts_array=$contacts_array_tmp;
+        
+        $contacts_array_for_sort=array();
+        reset($contacts_array);
+        while( list($key, $value)=each($contacts_array) ) {
+            if( array_key_exists('last_modified', $value) ) $contacts_array_for_sort[$key]=$value['last_modified'];
+        }
+        
+        if( count($contacts_array_for_sort)===count($contacts_array) ) {
+            array_multisort($contacts_array_for_sort, SORT_ASC, $contacts_array);
+        }
+                
+        reset($contacts_array);
+        while( list($key, $value)=each($contacts_array) ) {
+            $contact_id=$value['contact_id'];
+            write_log('Contact is found: contact_id='.$contact_id, $this->log_file);
+                
+            break;
+        }
+        
+    }
+   
+    // Get compnies list
+    $company_id=0;
     if( strlen($parsed_phone)===10 ) {
-      $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/v2/json/contacts/list?type=contact&query='.$parsed_phone;
-      $parameters=array();
-      
-      $return_result=amocrm_request('GET', $url, $parameters, $this->log_file, $this->coockie_file);
-      if( $return_result!==false ) {
-          
-    	$decoded_result=json_decode($return_result, true);
-    	$response=$decoded_result['response'];
-    	
-    	if( isset($response['contacts']) && count($response['contacts'])>0 && isset($response['contacts'][0]['id']) && is_numeric($response['contacts'][0]['id']) ) {
-    	  $contact_id=$response['contacts'][0]['id'];
-    	  write_log('Contact is found', $this->log_file);
-    	}
-	
-      }
+        
+        if( ($http_requester->connected)===false ) $http_requester->connect();
+        
+        $parameters=array();
+        $parameters['type']='company';
+        $parameters['query']=urlencode($parsed_phone);
+        
+        $contacts_array=get_contact_info($parameters, $http_requester);
+        
+        $contacts_array_for_sort=array();
+        reset($contacts_array);
+        while( list($key, $value)=each($contacts_array) ) {
+            if( array_key_exists('last_modified', $value) ) $contacts_array_for_sort[$key]=$value['last_modified'];
+        }
+        
+        if( count($contacts_array_for_sort)===count($contacts_array) ) {
+            array_multisort($contacts_array_for_sort, SORT_ASC, $contacts_array);
+        }
+        
+        reset($contacts_array);
+        while( list($key, $value)=each($contacts_array) ) {
+            $company_id=$value['contact_id'];
+            write_log('Company is found: company_id='.$company_id, $this->log_file);
+            
+            break;
+        }
+
     }
     
     // Create new contact
     if( $contact_id===0
+        && $company_id===0
         && ($this->create_contact===true) ) {
         
       $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/v2/json/contacts/set';  
@@ -185,15 +266,12 @@
               && strlen($this->custom_field_user_phone)>0
               && strlen($this->custom_field_user_amo_crm)>0 ) {
           
+          if( ($http_requester->connected)===false ) $http_requester->connect();
+                  
           $user_info=get_user_info_by_user_phone($this->user_phone,
                                                  $this->custom_field_user_amo_crm,
                                                  $this->custom_field_user_phone,
-                                                 null,
-                                                 $this->amocrm_account,
-                                                 $this->coockie_file,
-                                                 $this->log_file,
-                                                 $this->USER_LOGIN,
-                                                 $this->USER_HASH);
+                                                 $http_requester);
           
           if( is_array($user_info) ) {
               if( array_key_exists('user_id', $user_info) ) $responsible_user_id=$user_info['user_id'];
@@ -213,16 +291,15 @@
       
       $return_result=amocrm_request('POST', $url, $parameters_json, $this->log_file, $this->coockie_file);
       if( $return_result!==false ) {
-	$decoded_result=json_decode($return_result, true);
-	$response=$decoded_result['response'];
-	
-	if( isset($response['contacts']) && isset($response['contacts']['add']) && count($response['contacts']['add'])>0 && isset($response['contacts']['add'][0]['id']) && is_numeric($response['contacts']['add'][0]['id']) ) {
-	  $contact_id=$response['contacts']['add'][0]['id'];
-	  
-	  $this->contact_created=true;
-	  write_log('Contact is created', $this->log_file);
-	}
-	
+        	$decoded_result=json_decode($return_result, true);
+        	$response=$decoded_result['response'];
+        	
+            if( isset($response['contacts']) && isset($response['contacts']['add']) && count($response['contacts']['add'])>0 && isset($response['contacts']['add'][0]['id']) && is_numeric($response['contacts']['add'][0]['id']) ) {
+              $contact_id=$response['contacts']['add'][0]['id'];
+              
+              $this->contact_created=true;
+              write_log('Contact is created', $this->log_file);
+            }	
       } 
   
     }
@@ -318,19 +395,19 @@
 	 	 
       
     }
-    
-    
-    
+   
     // Create new call record
-    if( $contact_id>0 ) {
+    if( $contact_id>0
+        || $company_id>0 ) {
+            
       $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/v2/json/notes/set';
       
       $parameters=array();
       $parameters['request']['notes']['add']=array(
 	  array(
-	      'element_id'=>$contact_id,
+	      'element_type'=>($contact_id>0 ? 1:3),
+	      'element_id'=>($contact_id>0 ? $contact_id:$company_id),
 	      'last_modified'=> $this->call_unix_time,
-	      'element_type'=>1,
 	      'note_type'=>$note_type,
 	      'created_user_id'=>$user_id,
 	      'responsable_user_id'=>$user_id,

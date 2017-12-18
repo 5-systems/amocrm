@@ -45,8 +45,8 @@
   $custom_field_address_type_value_string_site_call='Звонок с сайта';
   $custom_field_address_type_value_internet_shop_call='4139621';
   $custom_field_address_type_value_string_internet_shop_call='Интернет-магазин';
-  $custom_field_address_type_value_internet_shop_call='4139623';
-  $custom_field_address_type_value_string_internet_shop_call='Чат';
+  $custom_field_address_type_value_online_chat_call='4139623';
+  $custom_field_address_type_value_string_online_chat_call='Чат';
   
   $custom_field_phone_id="1133906";
   $custom_field_phone_enum="2591354";
