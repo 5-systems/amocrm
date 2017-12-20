@@ -660,13 +660,14 @@ class amocrm_http_requester {
     	$result=true;
     	$this->connected=true;
     	write_log('Authorization: ок', $this->log_file);
-    	usleep($this->sleep_time_after_request_microsec);
       }
     
     }
     else {
       write_log('Authorization: failed', $this->log_file);      
     }
+    
+    usleep($this->sleep_time_after_request_microsec);
 	  
     return($result);    
   }
