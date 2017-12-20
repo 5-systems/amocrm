@@ -1,6 +1,6 @@
 <?php
 
-   // version 05.12.2017
+   // version 20.12.2017
 
    require_once('amocrm_settings.php');
    require_once('5c_std_lib.php');  
@@ -35,10 +35,34 @@
           mysql_close($db_conn);        
        }
        elseif( $write_log_cron===true ) {
-          write_log('Connection to database is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN OLD CALLS');   
+           write_log('Connection to database '.$amocrm_database_name.' is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN OLD CALLS');   
        }
    
    }
+   
+   // Clean crm_linkedid table
+   if( $clean_crm_linkedid_table===true ) {
+       
+       $db_host=$crm_linkedid_host;
+       if( strlen($crm_linkedid_port)>0 ) $db_host.=':'.$crm_linkedid_port;
+       
+       $db_conn=mysql_connect($db_host, $crm_linkedid_user, $crm_linkedid_password);
+       if( $db_conn!==false ) {
+           
+           $select_condition="linkedid<'&current_date_shifted&'";
+           
+           $current_date_shifted=$current_time-60*60*10;
+           template_set_parameter('current_date_shifted', $current_date_shifted, $select_condition);
+           
+           mysql_delete_rows($db_conn, $crm_linkedid_database_name, 'crm_linkedid', $select_condition, $amocrm_log_file);
+           
+           mysql_close($db_conn);
+       }
+       elseif( $write_log_cron===true ) {
+           write_log('Connection to database '.$crm_linkedid_database_name.' is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN crm_linkedid');
+       }
+       
+   }   
    
    // Update call duration
    if( $update_call_duration===true ) {
@@ -54,14 +78,29 @@
        $http_requester->{'USER_HASH'}=$amocrm_USER_HASH;
        $http_requester->{'amocrm_account'}=$amocrm_account;
        $http_requester->{'coockie_file'}=$amocrm_coockie_file;
-       $http_requester->{'amocrm_log_file'}=$amocrm_log_file;
        $http_requester->{'header'}=array('if-modified-since: '.$get_notes_from_date);
        
-       $parameters=array();
-       $parameters['type']='contact';
-       $parameters['limit_rows']='100';
-
-       $notes_array=get_notes_info($parameters, $http_requester);
+       if( $write_log_cron===true ) {
+           $http_requester->{'log_file'}=$amocrm_log_file;
+       }
+       
+       $notes_array=array();
+       
+       $element_types=array();
+       $element_types['contact']='1';
+       $element_types['company']='3';
+       
+       reset($element_types);
+       while( list($key_type, $value_type)=each($element_types) ) {
+       
+           $parameters=array();
+           $parameters['type']=strVal($key_type);
+           $parameters['limit_rows']='100';
+    
+           $notes_array_tmp=get_notes_info($parameters, $http_requester);
+           
+           if( is_array($notes_array_tmp) ) $notes_array=array_merge($notes_array, $notes_array_tmp);      
+       }
        
        $http_requester->{'header'}=null;
        
@@ -165,7 +204,7 @@
                   reset($selected_records);
                   while( list($key, $value)=each($selected_records) ) {
                      $_full_record_path=$key;
-	      	     write_log('record from uniquid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+	      	         write_log('record from uniquid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
                      break;
                   }
               }
@@ -285,62 +324,74 @@
            
            
        }
-              
        
        // Update record duration
-       $parameters=array();
-       $parameters['type']='contact';
-       $parameters['id']=array();
-       
-       $updated_fields=array();
-       $counter_update_records=0;
-       
-       reset($update_records);
-       while( list($key, $value)=each($update_records) ) {
-            $parameters['id'][]=$value['note_id'];
-            
-            $update_duration=false;
-            $update_link=false;
-            
-            $text_json=$value['text'];
-            $text_array=json_decode($text_json, true);
-            
-            if( array_key_exists('record_duration', $value)
-                && is_numeric($value['record_duration'])
-                && intVal($value['record_duration'])>0 ) {
-                    
-                $text_array['DURATION']=$value['record_duration'];
-                $update_duration=true;
-            }
-            
-            if( array_key_exists('record_link', $value)
-                && is_string($value['record_link'])
-                && strlen($value['record_link'])>0 ) {
-            
-                $text_array['LINK']=$value['record_link'];
-                $update_link=true;
-            }
-
-            $text_json=json_encode($text_array);
-    
-            $note_data=array("text"=>$text_json);
-            $updated_fields[intVal($value['note_id'])]=$note_data;
-            
-            if( $update_duration===true
-                || $update_link===true ) {
-            
-                $counter_update_records+=1;
-            }
-       }
-       
        $status=true;
-       if( array_key_exists('id', $parameters)
-           && count($parameters['id'])>0 ) {
-           
-          $status=update_notes_info($parameters, $updated_fields, $http_requester);      
-       }
-    
        
+       $element_types=array();
+       $element_types['contact']='1';
+       $element_types['company']='3';
+       
+       reset($element_types);
+       while( list($key_type, $value_type)=each($element_types) ) {
+      
+           $parameters=array();
+           $parameters['type']=strVal($key_type);
+           $parameters['id']=array();
+           
+           $updated_fields=array();
+           $counter_update_records=0;
+           
+           reset($update_records);
+           while( list($key, $value)=each($update_records) ) {
+               
+                if( strVal($value['element_type'])!==strVal($value_type) ) continue;
+               
+                $parameters['id'][]=$value['note_id'];
+                
+                $update_duration=false;
+                $update_link=false;
+                
+                $text_json=$value['text'];
+                $text_array=json_decode($text_json, true);
+                
+                if( array_key_exists('record_duration', $value)
+                    && is_numeric($value['record_duration'])
+                    && intVal($value['record_duration'])>0 ) {
+                        
+                    $text_array['DURATION']=$value['record_duration'];
+                    $update_duration=true;
+                }
+                
+                if( array_key_exists('record_link', $value)
+                    && is_string($value['record_link'])
+                    && strlen($value['record_link'])>0 ) {
+                
+                    $text_array['LINK']=$value['record_link'];
+                    $update_link=true;
+                }
+    
+                $text_json=json_encode($text_array);
+        
+                $note_data=array("text"=>$text_json);
+                $updated_fields[intVal($value['note_id'])]=$note_data;
+                
+                if( $update_duration===true
+                    || $update_link===true ) {
+                
+                    $counter_update_records+=1;
+                }
+           }
+           
+           if( array_key_exists('id', $parameters)
+               && count($parameters['id'])>0 ) {
+               
+               $status_tmp=update_notes_info($parameters, $updated_fields, $http_requester);
+               $status=($status && ($status_tmp===true));
+           }
+             
+       }
+      
        $update_status_text='Finish: duration of record is updated, number updated records='.strVal($counter_update_records);
        if( $status===false ) {
            $update_status_text='Finish: update of record duration is failed ';      

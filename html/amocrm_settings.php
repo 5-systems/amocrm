@@ -26,7 +26,8 @@
   $records_coeff_byte_to_sec_wav_phone_station=0.000062375;
   $write_log_cron=true;
   $clean_amocrm_phonestation_database=true;
-  $update_call_duration=true;  
+  $update_call_duration=true;
+  $clean_crm_linkedid_table=true;
 
   // Fields id
   $custom_field_user_amo_crm='1779045';
@@ -73,6 +74,13 @@
   // Create database amocrm_phonestation
   $amocrm_database_root_user='root';
   $amocrm_database_root_password='pass_from_root';
+  
+  // Asterisk database asteriskcdrdb: clean table crm_linkedid
+  $crm_linkedid_host='127.0.0.1';
+  $crm_linkedid_port='3306';
+  $crm_linkedid_database_name='asteriskcdrdb';
+  $crm_linkedid_user='root';
+  $crm_linkedid_password='pass_from_root';
   
   // Callback
   $queue='997';

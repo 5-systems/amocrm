@@ -1,6 +1,6 @@
 <?php
 
-  // version 17.11.2017
+  // version 20.12.2017
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');

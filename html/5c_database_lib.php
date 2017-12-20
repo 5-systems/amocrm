@@ -1,6 +1,6 @@
 <?php
 
-  // version 30.10.2017
+  // version 20.12.2017
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -33,9 +33,10 @@ function mysql_delete_rows($db_conn, $database_name, $table, $select_condition, 
    }
 	 
    $query_text="";
-   $query_text.="delete from calls where &select_condition&;";
+   $query_text.="delete from &table& where &select_condition&;";
    
-   template_set_parameter('select_condition', $select_condition, $query_text);      
+   template_set_parameter('select_condition', $select_condition, $query_text);
+   template_set_parameter('table', $table, $query_text); 
    
    $db_status=mysql_query($query_text, $db_conn);
    if( $db_status===false ) {
