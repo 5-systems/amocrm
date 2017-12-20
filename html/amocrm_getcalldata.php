@@ -28,7 +28,14 @@
    $http_requester->{'USER_HASH'}=$amocrm_USER_HASH;
    $http_requester->{'amocrm_account'}=$amocrm_account;
    $http_requester->{'coockie_file'}=$amocrm_coockie_file;
-   $http_requester->{'log_file'}=$amocrm_log_file;   
+   $http_requester->{'log_file'}=$amocrm_log_file;
+   
+   if( isset($amocrm_sleep_time_after_request_microsec)
+       && is_numeric($amocrm_sleep_time_after_request_microsec)
+       && intVal($amocrm_sleep_time_after_request_microsec)>0 ) {
+           
+       $http_requester->{'sleep_time_after_request_microsec'}=$amocrm_sleep_time_after_request_microsec;
+   }
    
    // Get contact by phone
    $client_phone=remove_symbols($CallerNumber);

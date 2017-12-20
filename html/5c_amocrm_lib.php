@@ -300,7 +300,14 @@
               $this->contact_created=true;
               write_log('Contact is created', $this->log_file);
             }	
-      } 
+      }
+      
+      if( isset($http_requester)
+          && isset($http_requester->sleep_time_after_request_microsec)
+          && is_numeric($http_requester->sleep_time_after_request_microsec) ) {
+         
+          usleep($http_requester->sleep_time_after_request_microsec);
+      }
   
     }
     
@@ -310,16 +317,23 @@
         && isset($this->user_phone)
         && strlen($this->user_phone)>0 ) {
     
-	 $client_contact_user=null;
-    
-	 $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/v2/json/contacts/list';
-	 $parameters=array();
-	 $parameters['type']='contact';
-	 $parameters['query']=strVal($this->user_phone);
+    	 $client_contact_user=null;
+        
+    	 $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/v2/json/contacts/list';
+    	 $parameters=array();
+    	 $parameters['type']='contact';
+    	 $parameters['query']=strVal($this->user_phone);
 	 
          $return_result=false;
          if( strlen($parameters['query'])>0 ) {
             $return_result=amocrm_request('GET', $url, $parameters, $this->log_file, $this->coockie_file);
+            
+            if( isset($http_requester)
+                && isset($http_requester->sleep_time_after_request_microsec)
+                && is_numeric($http_requester->sleep_time_after_request_microsec) ) {
+                    
+                usleep($http_requester->sleep_time_after_request_microsec);
+            }
          }   
             
 	 if( $return_result!==false ) {
@@ -334,31 +348,31 @@
 	       reset($client_contacts);
 	       while( list($key, $value)=each($client_contacts) ) {
 	       
-		  if( is_array($value)
-			&& isset($value['custom_fields'])
-			&& count($value['custom_fields'])>0 ) {
-			
-		     $custom_fields=$value['custom_fields'];
-		     reset($custom_fields);
-		     while( list($key_2, $value_2)=each($custom_fields) ) {
+    		  if( is_array($value)
+    			&& isset($value['custom_fields'])
+    			&& count($value['custom_fields'])>0 ) {
+    			
+    		     $custom_fields=$value['custom_fields'];
+    		     reset($custom_fields);
+    		     while( list($key_2, $value_2)=each($custom_fields) ) {
+    		  
+        			if( is_array($value_2)
+        			   && isset($value_2['id'])
+        			   && $value_2['id']===$this->custom_field_user_phone
+        			   && is_array($value_2['values'])
+        			   && $value_2['values'][0]['value']===$this->user_phone ) {
+        			   
+        			   $client_contact_user=$value;
+        			   break;
+        			}
+    			
+    		     }
+    				    
+    		  }
 		  
-			if( is_array($value_2)
-			   && isset($value_2['id'])
-			   && $value_2['id']===$this->custom_field_user_phone
-			   && is_array($value_2['values'])
-			   && $value_2['values'][0]['value']===$this->user_phone ) {
-			   
-			   $client_contact_user=$value;
-			   break;
-			}
-			
-		     }
-				    
-		  }
-		  
-		  if( !is_null($client_contact_user) ) break;
-	       
-	       }
+    		  if( !is_null($client_contact_user) ) break;
+    	       
+            }
 	       
 	       
 	    } // search for contact
@@ -373,19 +387,19 @@
 	       reset($custom_fields);
 	       while( list($key, $value)=each($custom_fields) ) {
 		  
-		  if( is_array($value)
-		     && isset($value['id'])
-		     && $value['id']!==$this->custom_field_user_amo_crm ) continue; 
-
-		  $values_array=$value['values'];	  		  
-		  if( is_array($values_array)
-		     && count($values_array)>0
-		     && isset($values_array[0]['value'])
-		     && is_numeric($values_array[0]['value']) ) {
-		  
-		     $user_id=intVal($values_array[0]['value']);
-		     break;	    
-		  }
+    		  if( is_array($value)
+    		     && isset($value['id'])
+    		     && $value['id']!==$this->custom_field_user_amo_crm ) continue; 
+    
+    		  $values_array=$value['values'];	  		  
+    		  if( is_array($values_array)
+    		     && count($values_array)>0
+    		     && isset($values_array[0]['value'])
+    		     && is_numeric($values_array[0]['value']) ) {
+    		  
+    		     $user_id=intVal($values_array[0]['value']);
+    		     break;	    
+    		  }
 		     
 	       } 
 			      
@@ -428,15 +442,23 @@
 
 
       $parameters_json=json_encode($parameters);
-      $return_result=amocrm_request('POST', $url, $parameters_json, $this->log_file, $this->coockie_file);   
+      $return_result=amocrm_request('POST', $url, $parameters_json, $this->log_file, $this->coockie_file);
+ 
+      if( isset($http_requester)
+          && isset($http_requester->sleep_time_after_request_microsec)
+          && is_numeric($http_requester->sleep_time_after_request_microsec) ) {
+              
+              usleep($http_requester->sleep_time_after_request_microsec);
+      }
+      
       if( $return_result!==false ) {
-	$decoded_result=json_decode($return_result, true);
-	$response=$decoded_result['response'];
-	
-	if( isset($response['notes']) && isset($response['notes']['add']) && count($response['notes']['add'])>0 && isset($response['notes']['add'][0]['id']) && is_numeric($response['notes']['add'][0]['id']) ) {
-	  write_log('Call is added: '.$this->callid, $this->log_file);
-	  $result=true;
-	}
+    	$decoded_result=json_decode($return_result, true);
+    	$response=$decoded_result['response'];
+    	
+    	if( isset($response['notes']) && isset($response['notes']['add']) && count($response['notes']['add'])>0 && isset($response['notes']['add'][0]['id']) && is_numeric($response['notes']['add'][0]['id']) ) {
+    	  write_log('Call is added: '.$this->callid, $this->log_file);
+    	  $result=true;
+    	}
 	
       }
       

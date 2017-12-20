@@ -79,6 +79,13 @@
        $http_requester->{'amocrm_account'}=$amocrm_account;
        $http_requester->{'coockie_file'}=$amocrm_coockie_file;
        $http_requester->{'header'}=array('if-modified-since: '.$get_notes_from_date);
+
+       if( isset($amocrm_sleep_time_after_request_microsec)
+           && is_numeric($amocrm_sleep_time_after_request_microsec)
+           && intVal($amocrm_sleep_time_after_request_microsec)>0 ) {
+               
+           $http_requester->{'sleep_time_after_request_microsec'}=$amocrm_sleep_time_after_request_microsec;
+       }
        
        if( $write_log_cron===true ) {
            $http_requester->{'log_file'}=$amocrm_log_file;

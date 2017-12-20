@@ -61,6 +61,13 @@
    $http_requester->{'coockie_file'}=$amocrm_coockie_file;
    $http_requester->{'log_file'}=$amocrm_log_file;
    $http_requester->{'custom_field_phone_id'}=$custom_field_phone_id;
+   
+   if( isset($amocrm_sleep_time_after_request_microsec)
+       && is_numeric($amocrm_sleep_time_after_request_microsec)
+       && intVal($amocrm_sleep_time_after_request_microsec)>0 ) {
+
+       $http_requester->{'sleep_time_after_request_microsec'}=$amocrm_sleep_time_after_request_microsec;
+   }
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
    if( strlen($user_phone)>0 ) {
@@ -367,7 +374,6 @@
    if( $db_conn===false ) {
       $result_message=mysql_error();
       write_log('Connection to database is failed: '.$result_message, $amocrm_log_file, 'REG_CALL '.$LogLineId);
-      exit($result);
    }
 
    
