@@ -827,6 +827,9 @@ class amocrm_http_requester {
           }  
             
         }
+        else {
+            $continue_cycle=false;            
+        }
         
         usleep($this->sleep_time_after_request_microsec);
         
