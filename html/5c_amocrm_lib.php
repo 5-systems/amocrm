@@ -822,7 +822,8 @@ class amocrm_http_requester {
               }
               
           }
-          else {  
+          else {
+            $continue_cycle=false;
             $result=$return_result;
           }  
             
