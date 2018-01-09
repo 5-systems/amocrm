@@ -8,7 +8,7 @@
   $amocrm_USER_LOGIN='your@email.ru';
   $amocrm_USER_HASH='AMOCRM_HASH';
   $amocrm_account='youraccount';
-  $amocrm_sleep_time_after_request_microsec=2000000;
+  $amocrm_sleep_time_after_request_microsec=500000;
 
   // Phone station
   $phone_prefix='8';
