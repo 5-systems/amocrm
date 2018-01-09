@@ -31,6 +31,7 @@
   // Get user's internal phone
   $user_phone='';
   $http_requester=null;
+  $db_conn=null;
   if( strlen($user_id)>=3 ) {
   
    $http_requester=new amocrm_http_requester;
@@ -45,7 +46,15 @@
        && intVal($amocrm_sleep_time_after_request_microsec)>0 ) {
            
        $http_requester->{'sleep_time_after_request_microsec'}=$amocrm_sleep_time_after_request_microsec;
-    }
+   }
+   
+   $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
+   if( isset($db_conn) ) {
+       
+       $db_conn->autocommit(true);
+       $http_requester->{'lock_database_connection'}=$db_conn;
+       $http_requester->{'lock_priority'}=0;
+   }
   
    $user_phone=get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester);    
   } // user_id ok
@@ -121,6 +130,9 @@
     $result.="success ";
   }
 
+  if( isset($db_conn) ) {
+      $db_conn->close();
+  }
 
   echo $result;
 

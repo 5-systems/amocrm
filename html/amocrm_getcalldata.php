@@ -1,7 +1,7 @@
 <?php
 
    date_default_timezone_set('Etc/GMT-3');
-
+   
    if( count($_REQUEST)===0
        && count($argv)>1 ) {
 
@@ -35,6 +35,14 @@
        && intVal($amocrm_sleep_time_after_request_microsec)>0 ) {
            
        $http_requester->{'sleep_time_after_request_microsec'}=$amocrm_sleep_time_after_request_microsec;
+   }
+   
+   $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
+   if( isset($db_conn) ) {
+       
+       $db_conn->autocommit(true);
+       $http_requester->{'lock_database_connection'}=$db_conn;
+       $http_requester->{'lock_priority'}=-10;
    }
    
    // Get contact by phone
@@ -239,6 +247,11 @@
       $result.='<type>'.$redirection_type.'</type>';
       $result.='<number>'.$user_phone.'</number>';
       $result.='<name>'.$client_name.'</name>';
+   }
+   
+   // close connection to db
+   if( isset($db_conn) ) {
+      $db_conn->close();
    }
    
    echo $result;   

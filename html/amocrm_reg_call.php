@@ -25,7 +25,7 @@
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
    if(!isset($FirstCalledNumber)) $FirstCalledNumber='';
-
+   
    $LogLineId=$CallId;
    
    require_once('amocrm_settings.php');
@@ -68,14 +68,22 @@
 
        $http_requester->{'sleep_time_after_request_microsec'}=$amocrm_sleep_time_after_request_microsec;
    }
+   
+   $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
+   if( isset($db_conn) ) {
+       
+       $db_conn->autocommit(true);
+       $http_requester->{'lock_database_connection'}=$db_conn;
+       $http_requester->{'lock_priority'}=0;
+   }
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
    if( strlen($user_phone)>0 ) {
       $user_info=get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester);
       
       if( is_array($user_info) ) {
-	 if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
-	 if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];      
+	  if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
+	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];      
       }
    }
 
@@ -349,6 +357,11 @@
 	 
       }
    
+   }
+   
+   // close connection to db
+   if( isset($db_conn) ) {
+       $db_conn->close();
    }
 
    $current_date=date('Y-m-d H:i:s', $current_time);

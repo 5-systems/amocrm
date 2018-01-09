@@ -7,30 +7,31 @@
    $db_host=$amocrm_database_host;
    if( strlen($amocrm_database_port)>0 ) $db_host.=':'.$amocrm_database_port;
    
-   $db_conn=mysql_connect($db_host, $amocrm_database_root_user, $amocrm_database_root_password);
-   if( $db_conn===false ) {
-      exit('Connection to database is failed: '.mysql_error());    
+   $db_conn=new mysqli($db_host, $amocrm_database_root_user, $amocrm_database_root_password);
+   if( !isset($db_conn) ) {
+      exit('Connection to database is failed: '.$db_conn->connect_errno);    
    } 
 
    // Create database
    $query_text="";      
    $query_text.="create database &amocrm_database_name&;";
    $query_text=set_parameter('amocrm_database_name', $amocrm_database_name, $query_text);      
-   $db_status=mysql_query($query_text);
+   //echo $query_text.PHP_EOL;
+   $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot create database: '.mysql_error());  
+      exit('Cannot create database: '.$db_conn->error);  
    }
    
    // Select database
    $query_text="";      
    $query_text.="use &amocrm_database_name&;";
    $query_text=set_parameter('amocrm_database_name', $amocrm_database_name, $query_text);      
-   $db_status=mysql_query($query_text);
+   $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot select database: '.mysql_error());  
+      exit('Cannot select database: '.$db_conn->error);  
    }   
    
-   // Create table
+   // Create table calls
    $query_text="";      
    $query_text.="create table &table_name& (";
    $query_text.="   date datetime NOT NULL DEFAULT '0000-00-00 00:00:00',";
@@ -55,9 +56,38 @@
 
    $query_text=set_parameter('table_name', 'calls', $query_text);   
    
-   $db_status=mysql_query($query_text);
+   $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot create table: '.mysql_error());  
+      exit('Cannot create table calls: '.$db_conn->error);  
+   }
+
+   // Create table locks
+   $query_text="";
+   $query_text.="create table &table_name& (";
+   $query_text.="   id numeric(10,0) primary key NOT NULL DEFAULT 0,";
+   $query_text.="   time numeric(16,6) NOT NULL DEFAULT 0";
+   $query_text.=") ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+   $query_text=set_parameter('table_name', 'locks', $query_text);
+
+   $db_status=$db_conn->query($query_text);
+   if( $db_status===false ) {
+      exit('Cannot create table locks: '.$db_conn->error);
+   }
+   
+   // Create table for queue
+   $query_text="";
+   $query_text.="create table &table_name& (";
+   $query_text.="   pid numeric(10,0) NOT NULL DEFAULT 0,";
+   $query_text.="   time numeric(16,6) NOT NULL DEFAULT 0,";
+   $query_text.="   priority numeric(10,0) NOT NULL DEFAULT 0";
+   $query_text.=") ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+   
+   $query_text=set_parameter('table_name', 'queue', $query_text);
+   
+   $db_status=$db_conn->query($query_text);
+   if( $db_status===false ) {
+       exit('Cannot create table queue: '.$db_conn->error);
    }
    
    // Create user
@@ -66,9 +96,9 @@
    $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
    $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);
    
-   $db_status=mysql_query($query_text);
+   $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot create user: '.mysql_error());  
+      exit('Cannot create user: '.$db_conn->error);  
    }
    
    // Add grants
@@ -77,9 +107,9 @@
    $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
    $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);
    
-   $db_status=mysql_query($query_text);
+   $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot add all privileges to amocrmuser: '.mysql_error());  
+      exit('Cannot add all privileges to amocrmuser: '.$db_conn->error);  
    }
    
    $query_text="";
@@ -87,9 +117,9 @@
    $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
    $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);   
    
-   $db_status=mysql_query($query_text);
+   $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot add usage privilege to amocrmuser: '.mysql_error());  
+      exit('Cannot add usage privilege to amocrmuser: '.$db_conn->error);  
    }
    
 function set_parameter($parameter, $value, $template) {

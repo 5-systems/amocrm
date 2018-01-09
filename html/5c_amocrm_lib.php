@@ -1,9 +1,10 @@
 <?php
 
-  // version 20.12.2017
+  // version 09.01.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
+  require_once('5c_database_lib.php');
 
   date_default_timezone_set('Etc/GMT-3');
   ini_set("default_socket_timeout", 600);
@@ -118,21 +119,18 @@
         $http_requester->{'log_file'}=$this->log_file;
     }
     
-    if( ($http_requester->connected)===false ) $http_requester->connect();
-    
     // Get contact list
     $contact_id=0;
     if( strlen($parsed_phone)===10
         && isset($this->custom_field_phone_id)
         && strlen($this->custom_field_phone_id)>0
         && is_numeric($this->custom_field_phone_id) ) {
-        
-        if( ($http_requester->connected)===false ) $http_requester->connect();
-            
+         
         $parameters=array();
         $parameters['type']='contact';
         $parameters['query']=urlencode($parsed_phone);
         $contacts_array=get_contact_info($parameters, $http_requester);
+
         
         // Additional filter by phone
         $contacts_array_tmp=array();
@@ -196,8 +194,6 @@
     $company_id=0;
     if( strlen($parsed_phone)===10 ) {
         
-        if( ($http_requester->connected)===false ) $http_requester->connect();
-        
         $parameters=array();
         $parameters['type']='company';
         $parameters['query']=urlencode($parsed_phone);
@@ -238,20 +234,20 @@
           && isset($this->custom_field_phone_id)
           && isset($this->custom_field_phone_enum) ) {
       
-	 $phone_values=array( array("value"=>($this->phone_prefix.$parsed_phone), "enum"=>($this->custom_field_phone_enum)) );  
-	 $phones=array("id"=>($this->custom_field_phone_id), "values"=>$phone_values);
-
-	 $custom_fields_value[]=$phones;
+    	 $phone_values=array( array("value"=>($this->phone_prefix.$parsed_phone), "enum"=>($this->custom_field_phone_enum)) );  
+    	 $phones=array("id"=>($this->custom_field_phone_id), "values"=>$phone_values);
+    
+    	 $custom_fields_value[]=$phones;
       }   
 
       if( strlen($this->email)>0
           && isset($this->custom_field_email_id)
           && isset($this->custom_field_email_enum) ) {
           
-	 $email_values=array( array("value"=>$this->email, "enum"=>($this->custom_field_email_enum)) );
-	 $emails=array("id"=>($this->custom_field_email_id), "values"=>$email_values);
-
-	 $custom_fields_value[]=$emails;  
+    	 $email_values=array( array("value"=>$this->email, "enum"=>($this->custom_field_email_enum)) );
+    	 $emails=array("id"=>($this->custom_field_email_id), "values"=>$email_values);
+    
+    	 $custom_fields_value[]=$emails;  
       }
       
       $responsible_user_id=0;
@@ -265,8 +261,6 @@
               && strlen($this->user_phone)>0
               && strlen($this->custom_field_user_phone)>0
               && strlen($this->custom_field_user_amo_crm)>0 ) {
-          
-          if( ($http_requester->connected)===false ) $http_requester->connect();
                   
           $user_info=get_user_info_by_user_phone($this->user_phone,
                                                  $this->custom_field_user_amo_crm,
@@ -288,8 +282,14 @@
       
       $parameters=array( "request"=>$request_value );
       $parameters_json=json_encode($parameters);
+            
+      $http_requester->{'send_method'}='POST';
+      $http_requester->{'url'}=$url;
+      $http_requester->{'parameters'}=$parameters_json;
       
-      $return_result=amocrm_request('POST', $url, $parameters_json, $this->log_file, $this->coockie_file);
+      $return_result=false;
+      $return_result=$http_requester->request();
+               
       if( $return_result!==false ) {
         	$decoded_result=json_decode($return_result, true);
         	$response=$decoded_result['response'];
@@ -300,13 +300,6 @@
               $this->contact_created=true;
               write_log('Contact is created', $this->log_file);
             }	
-      }
-      
-      if( isset($http_requester)
-          && isset($http_requester->sleep_time_after_request_microsec)
-          && is_numeric($http_requester->sleep_time_after_request_microsec) ) {
-         
-          usleep($http_requester->sleep_time_after_request_microsec);
       }
   
     }
@@ -323,90 +316,84 @@
     	 $parameters=array();
     	 $parameters['type']='contact';
     	 $parameters['query']=strVal($this->user_phone);
-	 
+
+         $http_requester->{'send_method'}='GET';
+         $http_requester->{'url'}=$url;
+         $http_requester->{'parameters'}=$parameters;
+         
          $return_result=false;
-         if( strlen($parameters['query'])>0 ) {
-            $return_result=amocrm_request('GET', $url, $parameters, $this->log_file, $this->coockie_file);
+         $return_result=$http_requester->request();
             
-            if( isset($http_requester)
-                && isset($http_requester->sleep_time_after_request_microsec)
-                && is_numeric($http_requester->sleep_time_after_request_microsec) ) {
-                    
-                usleep($http_requester->sleep_time_after_request_microsec);
-            }
-         }   
-            
-	 if( $return_result!==false ) {
-	 
-	    $decoded_result=json_decode($return_result, true);
-	    $response=$decoded_result['response'];
-
-	    if( isset($response['contacts'])
-		  && count($response['contacts'])>0 ) {
-		  
-	       $client_contacts=$response['contacts'];
-	       reset($client_contacts);
-	       while( list($key, $value)=each($client_contacts) ) {
-	       
-    		  if( is_array($value)
-    			&& isset($value['custom_fields'])
-    			&& count($value['custom_fields'])>0 ) {
-    			
-    		     $custom_fields=$value['custom_fields'];
-    		     reset($custom_fields);
-    		     while( list($key_2, $value_2)=each($custom_fields) ) {
-    		  
-        			if( is_array($value_2)
-        			   && isset($value_2['id'])
-        			   && $value_2['id']===$this->custom_field_user_phone
-        			   && is_array($value_2['values'])
-        			   && $value_2['values'][0]['value']===$this->user_phone ) {
-        			   
-        			   $client_contact_user=$value;
-        			   break;
-        			}
-    			
-    		     }
-    				    
-    		  }
-		  
-    		  if( !is_null($client_contact_user) ) break;
-    	       
-            }
-	       
-	       
-	    } // search for contact
-
-	    
-	    // search for user phone
-	    if( is_array($client_contact_user)
-		  && isset($client_contact_user['custom_fields'])
-		  && count($client_contact_user['custom_fields'])>0 ) {
-		  
-	       $custom_fields=$client_contact_user['custom_fields'];
-	       reset($custom_fields);
-	       while( list($key, $value)=each($custom_fields) ) {
-		  
-    		  if( is_array($value)
-    		     && isset($value['id'])
-    		     && $value['id']!==$this->custom_field_user_amo_crm ) continue; 
+    	 if( $return_result!==false ) {
+    	 
+    	    $decoded_result=json_decode($return_result, true);
+    	    $response=$decoded_result['response'];
     
-    		  $values_array=$value['values'];	  		  
-    		  if( is_array($values_array)
-    		     && count($values_array)>0
-    		     && isset($values_array[0]['value'])
-    		     && is_numeric($values_array[0]['value']) ) {
+    	    if( isset($response['contacts'])
+    		  && count($response['contacts'])>0 ) {
     		  
-    		     $user_id=intVal($values_array[0]['value']);
-    		     break;	    
-    		  }
-		     
-	       } 
-			      
-	    } // search for user phone	 
-	    
-	 }
-	 	 
+    	       $client_contacts=$response['contacts'];
+    	       reset($client_contacts);
+    	       while( list($key, $value)=each($client_contacts) ) {
+    	       
+        		  if( is_array($value)
+        			&& isset($value['custom_fields'])
+        			&& count($value['custom_fields'])>0 ) {
+        			
+        		     $custom_fields=$value['custom_fields'];
+        		     reset($custom_fields);
+        		     while( list($key_2, $value_2)=each($custom_fields) ) {
+        		  
+            			if( is_array($value_2)
+            			   && isset($value_2['id'])
+            			   && $value_2['id']===$this->custom_field_user_phone
+            			   && is_array($value_2['values'])
+            			   && $value_2['values'][0]['value']===$this->user_phone ) {
+            			   
+            			   $client_contact_user=$value;
+            			   break;
+            			}
+        			
+        		     }
+        				    
+        		  }
+    		  
+        		  if( !is_null($client_contact_user) ) break;
+        	       
+                }
+    	       
+    	       
+    	    } // search for contact
+    
+    	    
+    	    // search for user phone
+    	    if( is_array($client_contact_user)
+    		  && isset($client_contact_user['custom_fields'])
+    		  && count($client_contact_user['custom_fields'])>0 ) {
+    		  
+    	       $custom_fields=$client_contact_user['custom_fields'];
+    	       reset($custom_fields);
+    	       while( list($key, $value)=each($custom_fields) ) {
+    		  
+        		  if( is_array($value)
+        		     && isset($value['id'])
+        		     && $value['id']!==$this->custom_field_user_amo_crm ) continue; 
+        
+        		  $values_array=$value['values'];	  		  
+        		  if( is_array($values_array)
+        		     && count($values_array)>0
+        		     && isset($values_array[0]['value'])
+        		     && is_numeric($values_array[0]['value']) ) {
+        		  
+        		     $user_id=intVal($values_array[0]['value']);
+        		     break;	    
+        		  }
+    		     
+    	       } 
+    			      
+    	    } // search for user phone	 
+    	    
+    	 }
       
     }
    
@@ -440,16 +427,14 @@
 	  )
       );
 
-
       $parameters_json=json_encode($parameters);
-      $return_result=amocrm_request('POST', $url, $parameters_json, $this->log_file, $this->coockie_file);
- 
-      if( isset($http_requester)
-          && isset($http_requester->sleep_time_after_request_microsec)
-          && is_numeric($http_requester->sleep_time_after_request_microsec) ) {
-              
-              usleep($http_requester->sleep_time_after_request_microsec);
-      }
+      
+      $http_requester->{'send_method'}='POST';
+      $http_requester->{'url'}=$url;
+      $http_requester->{'parameters'}=$parameters_json;
+      
+      $return_result=false;
+      $return_result=$http_requester->request();
       
       if( $return_result!==false ) {
     	$decoded_result=json_decode($return_result, true);
@@ -472,7 +457,7 @@
 } // end class
 
 
-function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_path="", $header=null) {
+function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_path="", $header=null, &$request_status_code=null) {
 
   $result=false;
  
@@ -578,6 +563,8 @@ function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_
   curl_close($curl);
   
   $return_code_numeric=(int)$return_code;
+  $request_status_code=$return_code_numeric;
+  
   $errors=array(
     301=>'Moved permanently',
     400=>'Bad request',
@@ -629,6 +616,9 @@ class amocrm_http_requester {
   public $max_number_rows;
   public $max_number_request_cycles;
   public $sleep_time_after_request_microsec;
+  public $request_status_code;
+  public $lock_database_connection;
+  public $lock_priority;
   
   // class use
   public $connected;
@@ -642,7 +632,7 @@ class amocrm_http_requester {
       $this->sleep_time_after_request_microsec=300000;
   }
   
-  public function connect() {
+  public function connect($without_lock=false) {
   
     $result=false;
 
@@ -650,7 +640,31 @@ class amocrm_http_requester {
     $url='https://'.$this->amocrm_account.'.amocrm.ru/private/api/auth.php?type=json';
     $parameters=array('USER_LOGIN'=>$this->USER_LOGIN, 'USER_HASH'=>$this->USER_HASH);
 
-    $return_result=amocrm_request('POST', $url, $parameters, $this->log_file, $this->coockie_file, $this->header);
+    $return_result=false;
+    $min_time_from_last_lock_sec=0;
+    if( ($this->sleep_time_after_request_microsec)>0 ) $min_time_from_last_lock_sec=($this->sleep_time_after_request_microsec)/1000000;
+    
+    $lock_priority=0;
+    if( isset($this->lock_priority) ) $lock_priority=($this->lock_priority);
+    
+    $db_conn=($this->lock_database_connection);
+    $lock_status=true;
+    if( $without_lock===false
+        && isset($db_conn) ) {
+            
+        $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority);
+    }
+    
+    if( $lock_status===true ) {
+        $return_result=amocrm_request('POST', $url, $parameters, $this->log_file, $this->coockie_file, $this->header);
+        
+        if( $without_lock===false
+            && isset($db_conn) ) {
+                
+            unlock_database($db_conn);
+        }
+    }
+    
     if( $return_result!==false ) {
     
       $decoded_result=json_decode($return_result, true);
@@ -667,7 +681,11 @@ class amocrm_http_requester {
       write_log('Authorization: failed', $this->log_file);      
     }
     
-    usleep($this->sleep_time_after_request_microsec);
+    if( $without_lock===true
+        || !isset($db_conn) ) {
+            
+        usleep($this->sleep_time_after_request_microsec);
+    }    
 	  
     return($result);    
   }
@@ -761,7 +779,37 @@ class amocrm_http_requester {
             $request_parameters=$initial_parameters;       
         }
         
-        $return_result=amocrm_request($this->send_method, $this->url, $request_parameters, $this->log_file, $this->coockie_file, $this->header);
+        $return_result=false;
+        $min_time_from_last_lock_sec=0;
+        if( ($this->sleep_time_after_request_microsec)>0 ) $min_time_from_last_lock_sec=($this->sleep_time_after_request_microsec)/1000000;
+        
+        $lock_priority=0;
+        if( isset($this->lock_priority) ) $lock_priority=($this->lock_priority);
+        
+        $db_conn=($this->lock_database_connection);
+        $lock_status=true;
+        if( isset($db_conn) ) {
+            $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority);
+        }
+        
+        if( $lock_status===true ) {
+            
+            $return_result=amocrm_request($this->send_method, $this->url, $request_parameters, $this->log_file, $this->coockie_file, $this->header, $this->request_status_code);
+            
+            if( is_numeric($this->request_status_code)
+                && ($this->request_status_code)===401 ) {
+                    
+                $this->connected=false;
+                                
+                $this->connect(true);
+                $return_result=amocrm_request($this->send_method, $this->url, $request_parameters, $this->log_file, $this->coockie_file, $this->header, $this->request_status_code);
+            }
+            
+            if( isset($db_conn) ) {
+                unlock_database($db_conn);
+            }    
+        }
+        
         if( $return_result!==false ) {
             
           if( $divided_request===true
@@ -833,7 +881,9 @@ class amocrm_http_requester {
             $continue_cycle=false;            
         }
         
-        usleep($this->sleep_time_after_request_microsec);
+        if( !isset($db_conn) ) {
+            usleep($this->sleep_time_after_request_microsec);
+        }
         
         if( $cycle_counter>=($this->max_number_request_cycles) ) $continue_cycle=false;
         
@@ -867,18 +917,16 @@ function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_f
 
       $http_requester=null;
       if( is_null($amocrm_http_requester) ) {
-	 $http_requester=new amocrm_http_requester;
-	 $http_requester->{'USER_LOGIN'}=$user_login;
-	 $http_requester->{'USER_HASH'}=$user_hash;
-	 $http_requester->{'amocrm_account'}=$amocrm_account;
-	 $http_requester->{'coockie_file'}=$coockie_file;
-	 $http_requester->{'log_file'}=$log_file;
+    	 $http_requester=new amocrm_http_requester;
+    	 $http_requester->{'USER_LOGIN'}=$user_login;
+    	 $http_requester->{'USER_HASH'}=$user_hash;
+    	 $http_requester->{'amocrm_account'}=$amocrm_account;
+    	 $http_requester->{'coockie_file'}=$coockie_file;
+    	 $http_requester->{'log_file'}=$log_file;
       }
       else {
-	 $http_requester=$amocrm_http_requester;
+    	 $http_requester=$amocrm_http_requester;
       }
-      
-      if( ($http_requester->{'connected'})!==true ) $http_requester->connect();
       
       $http_requester->{'send_method'}='GET';
       $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
@@ -978,18 +1026,16 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 
       $http_requester=null;
       if( is_null($amocrm_http_requester) ) {
-	 $http_requester=new amocrm_http_requester;
-	 $http_requester->{'USER_LOGIN'}=$user_login;
-	 $http_requester->{'USER_HASH'}=$user_hash;
-	 $http_requester->{'amocrm_account'}=$amocrm_account;
-	 $http_requester->{'coockie_file'}=$coockie_file;
-	 $http_requester->{'log_file'}=$log_file;
+    	 $http_requester=new amocrm_http_requester;
+    	 $http_requester->{'USER_LOGIN'}=$user_login;
+    	 $http_requester->{'USER_HASH'}=$user_hash;
+    	 $http_requester->{'amocrm_account'}=$amocrm_account;
+    	 $http_requester->{'coockie_file'}=$coockie_file;
+    	 $http_requester->{'log_file'}=$log_file;
       }
       else {
-	 $http_requester=$amocrm_http_requester;
+    	 $http_requester=$amocrm_http_requester;
       }
-      
-      if( ($http_requester->{'connected'})!==true ) $http_requester->connect();
       
       $http_requester->{'send_method'}='GET';
       $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
@@ -1104,9 +1150,7 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   } 
    
    $contacts_array=array();
    
@@ -1171,9 +1215,7 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }
-   
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   }  
 				   
    $companies_array=array();
 				   
@@ -1260,9 +1302,7 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }				   
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   }
    
    $leads_array=array();
 				   
@@ -1326,9 +1366,7 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }				   
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   }  
    
    $companies_array=array();
 				   
@@ -1393,9 +1431,7 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }   
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   } 
    
    $parameters=array();
    $parameters['request']['leads']['add']=array(
@@ -1481,8 +1517,6 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
    else {
       $http_requester=$amocrm_http_requester;
    }
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();
    
    $contact_id='';
    $last_modified=0;
@@ -1584,9 +1618,7 @@ function get_notes_info($parameters='', $amocrm_http_requester=null,
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }				   
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   }   
    
    $elements_array=array();
 				   
@@ -1655,8 +1687,6 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
    else {
       $http_requester=$amocrm_http_requester;
    }
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();
    
    $notes_update=array();
    $notes_info=get_notes_info($parameters, $http_requester);
@@ -1753,9 +1783,7 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
    }
    else {
       $http_requester=$amocrm_http_requester;
-   }   
-
-   if( ($http_requester->{'connected'})!==true ) $http_requester->connect();   
+   }  
    
    $unsorted_id=strVal(uniqid('un', true));
    $note_id=strVal(uniqid('no', true));

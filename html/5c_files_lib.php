@@ -110,6 +110,8 @@ function write_log($message, $log_path, $prefix='') {
 
 	$function_result=false;
 	
+	if( strlen($log_path)===0 ) return($function_result);
+	
 	if( is_string($message) ) {
 		$message_tmp=$message;
 		$message=Array();
