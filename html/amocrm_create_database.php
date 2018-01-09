@@ -5,7 +5,6 @@
    date_default_timezone_set('Etc/GMT-3');      
    
    $db_host=$amocrm_database_host;
-   if( strlen($amocrm_database_port)>0 ) $db_host.=':'.$amocrm_database_port;
    
    $db_conn=new mysqli($db_host, $amocrm_database_root_user, $amocrm_database_root_password);
    if( !isset($db_conn) ) {
