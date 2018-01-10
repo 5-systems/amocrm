@@ -51,7 +51,7 @@ function mysql_delete_rows($db_conn, $database_name, $table, $select_condition, 
 
 
 function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
-    $time_interval_between_lock_tries_sec=0.1, $max_wait_time_for_lock_sec=10, $priority=0) {
+    $time_interval_between_lock_tries_sec=0.1, $max_wait_time_for_lock_sec=10, $priority=0, $max_number_cycles=1000, $lock_time_shift=0.0) {
         
         $result=false;
 
@@ -94,8 +94,6 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             return($result);
         }
         
-        $start_time=microtime(true);
-        
         $query_text_select_from_queue="select COUNT(*) as num from ";
         $query_text_select_from_queue.=" (select pid, time from &table_name& order by priority asc, time asc limit 1) as common";
         $query_text_select_from_queue.=" where common.pid=&pid& and common.time=&time& ";
@@ -134,9 +132,9 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                 }
                 
                 break;
-            }
+            }            
             
-            if( $cycle_count>1000 ) {
+            if( $cycle_count>$max_number_cycles ) {
                 
                 if( $write_log_messages===true ) {
                     write_log('lock_amocrm_database: number of cycles exceeded maximum ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
@@ -205,12 +203,12 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                 && $lock_is_possible===true ) {
                     
                     $current_time=microtime(true);
-                    $query_text_lock=template_set_parameter('current_time', sprintf('%.6f', $current_time), $query_text_lock);
+                    $query_text_lock=template_set_parameter('current_time', sprintf('%.6f', $current_time+$lock_time_shift), $query_text_lock);
                     
                     $query_status=$db_conn->query($query_text_lock);
                     if( $query_status===true ) {
                                                 
-                        $query_text_set_time=template_set_parameter('current_time', sprintf('%.6f', $current_time), $query_text_set_time);
+                        $query_text_set_time=template_set_parameter('current_time', sprintf('%.6f', $current_time+$lock_time_shift), $query_text_set_time);
                         $query_status=$db_conn->query($query_text_set_time);
                         $result=$query_status;
                         
