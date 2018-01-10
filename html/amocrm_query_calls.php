@@ -2,6 +2,7 @@
 
    require_once('5c_std_lib.php');
    require_once('5c_files_lib.php');
+   require_once('5c_database_lib.php');
    require_once('amocrm_settings.php');
 
    date_default_timezone_set('Etc/GMT-3');    
@@ -13,8 +14,7 @@
    if( !isset($user_id) ) {
       $user_id='';
    }
-   
-   
+
    //write_log('blank_line', $amocrm_log_file, 'QUERY');   
    //write_log($_REQUEST, $amocrm_log_file, 'QUERY');   
    
@@ -22,11 +22,8 @@
       
    // Check active calls
    $current_time=time();
-   
-   $db_host=$amocrm_database_host;
-   if( strlen($amocrm_database_port)>0 ) $db_host.=':'.$amocrm_database_port;
-   
-   $db_conn=mysql_connect($db_host, $amocrm_database_user, $amocrm_database_password);
+
+   $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
    if( $db_conn===false ) {
       write_log('Connection to database is failed', $amocrm_log_file, 'QUERY');
       exit($result);    
@@ -37,11 +34,11 @@
       $query_text="";      
       $query_text.='use &amocrm_database_name&;';
       $query_text=set_parameter('amocrm_database_name', $amocrm_database_name, $query_text);      
-      $db_status=mysql_query($query_text);
+      $db_status=$db_conn->query($query_text);
       
       $query_text="";      
       $query_text.="SET NAMES 'utf8';";
-      $db_status=mysql_query($query_text);
+      $db_status=$db_conn->query($query_text);
       
       $query_text="";
       $query_text.=" select ";
@@ -69,100 +66,130 @@
       
       $query_text=set_parameter('user_id', $user_id, $query_text);
       
-      $db_status=mysql_query($query_text);
-      if( $db_status===false ) {
-	 $result_message=mysql_error();
-	 write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'QUERY');
+      $db_result=$db_conn->query($query_text);
+      if( $db_result===false ) {
+          
+         $result_message=$db_result->error;
+         write_log('Request to database is failed: '.$result_message, $amocrm_log_file, 'QUERY');
+         
       }
       else {
 	 
-	 $selected_uniqueid=null;
-	 $selected_user_id=null;
-	 $result_row_array=array();
-	 while($row = mysql_fetch_assoc($db_status)) {	 	    
-	    $result_row_array["client_phone"]=strVal($row["client_phone"]);
-	    $result_row_array["user_name"]=strVal($row["user_name"]);
-	    $result_row_array["lead_id"]=strVal($row["lead_id"]);
-	    $result_row_array["record_link"]=strVal($row["file_path"]);
-	    $result_row_array["client_name"]=strVal($row["client_name"]);
-	    $result_row_array["new_client"]=strVal($row["new_client"]);
-	    $result_row_array["new_lead"]=strVal($row["new_lead"]);
-	    $result_row_array["outcoming"]=strVal($row["outcoming"]);
-	    
-	    $selected_uniqueid=strVal($row["uniqueid"]);
-	    $selected_user_id=strVal($row["user_id"]);	    
-	    
-        $result_row_array["from"]='';
-        $result_row_array["to"]='';
-        if( strVal($row["outcoming"])==='1' ) {
-           $result_row_array["from"].=$result_row_array["user_name"];
-
-           $result_row_array["to"].=$result_row_array["client_name"];
-
-           $client_name_from_request=remove_symbols($result_row_array["client_name"]);
-           if( strlen($client_name_from_request)<10 ) $result_row_array["to"].=' ('.$result_row_array["client_phone"].')';
-        }
-        else {
-           $result_row_array["from"].=$result_row_array["client_name"];
-
-           $client_name_from_request=remove_symbols($result_row_array["client_name"]);
-           if( strlen($client_name_from_request)<10 ) $result_row_array["from"].=' ('.$result_row_array["client_phone"].')';
-
-           if( strVal($row["missed"])==='1' ) {
-               $result_row_array["to"]='пропущен';
-           }
-           else {
-               $result_row_array["to"].=$result_row_array["user_name"];
-           }
-        }
-
-        $client_status_str='';
-        $new_client_str=', перв.';
-        if( strlen($result_row_array["new_client"])===1
-            && strVal($result_row_array["new_client"])==='0' ) {
-
-           $new_client_str=', повт.';
-        }
-
-        $client_status_str.=$new_client_str;
-
-        $new_lead_str=', новая сделка';
-        if( strlen($result_row_array["new_lead"])===1
-            && strVal($result_row_array["new_lead"])==='0' ) {
-
-           $new_lead_str=', продолж. перег.';
-        }
-
-        $client_status_str.=$new_lead_str;
-
-        $result_row_array["to"].=$client_status_str;
-        
-	    break;
-	 }
-	 
-	 $result=json_encode($result_row_array);
-	 
-	 // remove record
-	 if( !is_null($selected_uniqueid)
-	     && !is_null($selected_user_id) ) {
-	     
-	    $query_text="";
-	    $query_text.=" delete from calls ";
-	    $query_text.=" where ";
-	    $query_text.=" calls.uniqueid='&uniqueid&' and calls.user_id='&user_id&' ";	    
- 	    
- 	    $query_text=set_parameter('uniqueid', $selected_uniqueid, $query_text);
- 	    $query_text=set_parameter('user_id', $selected_user_id, $query_text);
- 	    
- 	    $db_status=mysql_query($query_text);
-	 }    
+    	 $selected_uniqueid=null;
+    	 $selected_user_id=null;
+    	 $result_row_array=array();
+    	 while($row = $db_result->fetch_assoc()) {
+    	     
+    	    $result_row_array["client_phone"]=strVal($row["client_phone"]);
+    	    $result_row_array["user_name"]=strVal($row["user_name"]);
+    	    $result_row_array["lead_id"]=strVal($row["lead_id"]);
+    	    $result_row_array["record_link"]=strVal($row["file_path"]);
+    	    $result_row_array["client_name"]=strVal($row["client_name"]);
+    	    $result_row_array["new_client"]=strVal($row["new_client"]);
+    	    $result_row_array["new_lead"]=strVal($row["new_lead"]);
+    	    $result_row_array["outcoming"]=strVal($row["outcoming"]);
+    	    
+    	    $selected_uniqueid=strVal($row["uniqueid"]);
+    	    $selected_user_id=strVal($row["user_id"]);	    
+    	    
+            $result_row_array["from"]='';
+            $result_row_array["to"]='';
+            if( strVal($row["outcoming"])==='1' ) {
+               $result_row_array["from"].=$result_row_array["user_name"];
+    
+               $result_row_array["to"].=$result_row_array["client_name"];
+    
+               $client_name_from_request=remove_symbols($result_row_array["client_name"]);
+               if( strlen($client_name_from_request)<10 ) $result_row_array["to"].=' ('.$result_row_array["client_phone"].')';
+            }
+            else {
+               $result_row_array["from"].=$result_row_array["client_name"];
+    
+               $client_name_from_request=remove_symbols($result_row_array["client_name"]);
+               if( strlen($client_name_from_request)<10 ) $result_row_array["from"].=' ('.$result_row_array["client_phone"].')';
+    
+               if( strVal($row["missed"])==='1' ) {
+                   $result_row_array["to"]='пропущен';
+               }
+               else {
+                   $result_row_array["to"].=$result_row_array["user_name"];
+               }
+            }
+    
+            $client_status_str='';
+            $new_client_str=', перв.';
+            if( strlen($result_row_array["new_client"])===1
+                && strVal($result_row_array["new_client"])==='0' ) {
+    
+               $new_client_str=', повт.';
+            }
+    
+            $client_status_str.=$new_client_str;
+    
+            $new_lead_str=', новая сделка';
+            if( strlen($result_row_array["new_lead"])===1
+                && strVal($result_row_array["new_lead"])==='0' ) {
+    
+               $new_lead_str=', продолж. перег.';
+            }
+    
+            $client_status_str.=$new_lead_str;
+    
+            $result_row_array["to"].=$client_status_str;
+            
+    	    break;
+    	 }
+    	 
+    	 $result=json_encode($result_row_array);
+    	 
+    	 // remove record
+    	 if( !is_null($selected_uniqueid)
+    	     && !is_null($selected_user_id) ) {
+    	     
+    	    $query_text="";
+    	    $query_text.=" delete from calls ";
+    	    $query_text.=" where ";
+    	    $query_text.=" calls.uniqueid='&uniqueid&' and calls.user_id='&user_id&' ";	    
+     	    
+     	    $query_text=set_parameter('uniqueid', $selected_uniqueid, $query_text);
+     	    $query_text=set_parameter('user_id', $selected_user_id, $query_text);
+     	    
+     	    $db_status=$db_conn->query($query_text);
+    	 }    
 	 
       }
       
    }
+  
+   if( count($result_row_array)>0 ) {
+       
+       write_log('Result='.$result, $amocrm_log_file, 'QUERY');
+       
+       // try lock amocrm
+       $lock_priority=-5;
+       $min_time_from_last_lock_sec=0;
+       if( $amocrm_sleep_time_after_request_microsec>0 ) $min_time_from_last_lock_sec=$amocrm_sleep_time_after_request_microsec/1000000;
+       
+       $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
+       
+       $lock_status=false;
+       if( isset($db_conn) ) {
+           $lock_status=lock_database($db_conn, $amocrm_log_file, $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec*2);
+           
+           if( $lock_status===true ) {
+               unlock_database($db_conn, $amocrm_log_file);
+           }
 
-   if( strlen($result)>2 ) write_log('Result='.$result, $amocrm_log_file, 'QUERY');      
+       }
+       
+       if( $lock_status===false ) $result=json_encode(array());
 
+   }
+
+   if( isset($db_conn) ) {
+       $db_conn->close();
+   }
+   
    echo $result;
 
 
