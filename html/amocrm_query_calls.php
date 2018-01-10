@@ -174,10 +174,10 @@
        
        $lock_status=false;
        if( isset($db_conn) ) {
-           $lock_status=lock_database($db_conn, $amocrm_log_file, $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec*2);
+           $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec*2);
            
            if( $lock_status===true ) {
-               unlock_database($db_conn, $amocrm_log_file);
+               unlock_database($db_conn, '');
            }
 
        }

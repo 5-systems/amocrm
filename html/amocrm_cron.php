@@ -1,6 +1,6 @@
 <?php
 
-   // version 09.01.2018
+   // version 10.01.2018
 
    require_once('amocrm_settings.php');
    require_once('5c_std_lib.php');  
@@ -28,7 +28,7 @@
           // from calls 
           $select_condition="date<'&current_date_shifted&'";
        
-          $current_date_shifted=date('Y-m-d H:i:s', $current_time-60*60*10);   
+          $current_date_shifted=date('Y-m-d H:i:s', $current_time-60*5);   
           template_set_parameter('current_date_shifted', $current_date_shifted, $select_condition);
           
           mysql_delete_rows($db_conn, $amocrm_database_name, 'calls', $select_condition, $amocrm_log_file);
@@ -36,7 +36,7 @@
           // from locks
           $select_condition="id=2 and time<'&current_time_shifted&'";
           
-          $current_time_shifted=$current_time-60*10;
+          $current_time_shifted=$current_time-60*5;
           template_set_parameter('current_time_shifted', $current_time_shifted, $select_condition);
           
           mysql_delete_rows($db_conn, $amocrm_database_name, 'locks', $select_condition, $amocrm_log_file);
@@ -44,7 +44,7 @@
           // from queue
           $select_condition="time<'&current_time_shifted&'";
           
-          $current_time_shifted=$current_time-60*10;
+          $current_time_shifted=$current_time-60*5;
           template_set_parameter('current_time_shifted', $current_time_shifted, $select_condition);
           
           mysql_delete_rows($db_conn, $amocrm_database_name, 'queue', $select_condition, $amocrm_log_file);
