@@ -1,6 +1,9 @@
 <?php
 
    date_default_timezone_set('Etc/GMT-3');
+
+   error_reporting(0);
+   ini_set('display_errors', 0);
    
    if( count($_REQUEST)===0
        && count($argv)>1 ) {
@@ -13,12 +16,12 @@
    require_once('amocrm_settings.php');
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
-   
+  
    $result='';
    $result.='<type>0</type>';
    $result.='<number></number>';
    $result.='<name>Первичный клиент</name>';   
-   
+
    write_log('blank_line', $amocrm_log_file, 'GET_CALL_TYPE');   
    write_log($_REQUEST, $amocrm_log_file, 'GET_CALL_TYPE');   
    
@@ -255,5 +258,5 @@
    }
    
    echo $result;   
-  
-?>   
+
+?>

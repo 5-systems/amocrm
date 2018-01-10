@@ -94,6 +94,8 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             return($result);
         }
         
+        $start_time=microtime(true);
+        
         $query_text_select_from_queue="select COUNT(*) as num from ";
         $query_text_select_from_queue.=" (select pid, time from &table_name& order by priority asc, time asc limit 1) as common";
         $query_text_select_from_queue.=" where common.pid=&pid& and common.time=&time& ";
@@ -124,20 +126,20 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             
             $cycle_count+=1;
             $current_time=microtime(true);
-            
-            if( $cycle_count>1000 ) {
+
+            if( ($current_time-$start_time)>$max_wait_time_for_lock_sec ) {
                 
                 if( $write_log_messages===true ) {
-                    write_log('lock_amocrm_database: number of cycles exceeded maximum ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                    write_log('lock_amocrm_database: maximum time for lock is exceeded ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
                 }
                 
                 break;
             }
             
-            if( ($current_time-$start_time)>$max_wait_time_for_lock_sec ) {
-                            
+            if( $cycle_count>1000 ) {
+                
                 if( $write_log_messages===true ) {
-                    write_log('lock_amocrm_database: maximum time for lock is exceeded ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                    write_log('lock_amocrm_database: number of cycles exceeded maximum ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
                 }
                 
                 break;
@@ -277,4 +279,4 @@ function unlock_database($db_conn, $log_file='') {
     
 }
 
-?>  
+?>
