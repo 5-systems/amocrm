@@ -440,6 +440,10 @@
        
    }
    
+   if( $write_log_cron===true ) {
+       write_log('Finish', $amocrm_log_file, 'CRON_TASK');
+   }
+   
    // Select function for search records
    function select_function($select_function_type, $file_path, $file_attributes) {
        
