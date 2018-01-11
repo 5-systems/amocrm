@@ -108,6 +108,14 @@
            $http_requester->{'log_file'}=$amocrm_log_file;
        }
        
+       $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
+       if( isset($db_conn) ) {
+           
+           $db_conn->autocommit(true);
+           $http_requester->{'lock_database_connection'}=$db_conn;
+           $http_requester->{'lock_priority'}=20;
+       }
+       
        $notes_array=array();
        
        $element_types=array();
@@ -416,11 +424,16 @@
              
        }
       
+       // close connection to db
+       if( isset($db_conn) ) {
+           $db_conn->close();
+       }
+       
        $update_status_text='Finish: duration of record is updated, number updated records='.strVal($counter_update_records);
        if( $status===false ) {
            $update_status_text='Finish: update of record duration is failed ';      
        }
-       
+              
        if( $write_log_cron===true ) {
        	write_log($update_status_text, $amocrm_log_file, 'UPDATE DURATION');
        }
