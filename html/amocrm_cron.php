@@ -364,6 +364,8 @@
        $element_types['contact']='1';
        $element_types['company']='3';
        
+       $counter_update_records=0;
+       
        reset($element_types);
        while( list($key_type, $value_type)=each($element_types) ) {
       
@@ -372,7 +374,6 @@
            $parameters['id']=array();
            
            $updated_fields=array();
-           $counter_update_records=0;
            
            reset($update_records);
            while( list($key, $value)=each($update_records) ) {
@@ -411,6 +412,7 @@
                 if( $update_duration===true
                     || $update_link===true ) {
                 
+                    $parameters['id'][]=$value['note_id'];
                     $counter_update_records+=1;
                 }
            }
