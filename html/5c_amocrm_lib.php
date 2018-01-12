@@ -411,7 +411,7 @@
 	      'last_modified'=> $this->call_unix_time,
 	      'note_type'=>$note_type,
 	      'created_user_id'=>$user_id,
-	      'responsable_user_id'=>$user_id,
+	      'responsible_user_id'=>$user_id,
 	      
 	      'text' => json_encode( 
 		  array(
