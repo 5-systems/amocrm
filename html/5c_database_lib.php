@@ -116,11 +116,12 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
         $query_text_set_time=template_set_parameter('table_name', 'locks', $query_text_set_time);
         
         
-        $top_in_queue=false;
-        $lock_is_possible=false;
         $cycle_count=0;
         
         while(true) {
+            
+            $top_in_queue=false;
+            $lock_is_possible=false;
             
             $cycle_count+=1;
             $current_time=microtime(true);
