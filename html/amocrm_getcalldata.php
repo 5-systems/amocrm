@@ -5,6 +5,7 @@
    error_reporting(0);
    ini_set('display_errors', 0);
    
+   $_REQUEST['CallerNumber']='4955404614';
    if( count($_REQUEST)===0
        && count($argv)>1 ) {
 
@@ -110,7 +111,7 @@
       $client_name=$value['name'];
       
       if( strlen($value['company_id'])>0 ) {
-	 $client_company=$value['company_id'];
+	       $client_company=$value['company_id'];
       }
 
       break;
@@ -124,10 +125,41 @@
  
    write_log('Search for contact, contact_id='.$client_contact.', company_id='.$client_company, $amocrm_log_file, 'GET_CALL_TYPE');
    
+   // Get companies by phone
+   $companies_array_from_request=null;
+   $client_company_from_request=null;
+       
+   $parameters=array();
+   $parameters['type']='company';
+   $parameters['query']=urlencode($parsed_client_phone);
+   $companies_array_from_request=get_companies_info($parameters, $http_requester);
+   
+   reset($companies_array_from_request);
+   while( list($key, $value)=each($companies_array_from_request) ) {
+       if( is_numeric($value['company_id'])
+           && strlen($value['company_id'])>0 ) {
+               
+           $companies_array[ intval($value['company_id']) ]=strval($value['company_id']);
+           
+           if( strlen($client_name)===0 ) $client_name=$value['name'];
+           
+           if( !isset($client_company_from_request)
+               && strlen($value['company_id'])>0 ) {
+                   
+               $client_company_from_request=$value['company_id'];
+           }
+           
+       }
+       
+   }
+   
+   write_log('Search for company, company_id='.$client_company_from_request, $amocrm_log_file, 'GET_CALL_TYPE');
+   
    // Search user_id in leads
    $user_id=null;
    $lead_id=null;
-   if( count($contacts_array)>0 ) {
+   if( count($contacts_array)>0
+       || count($companies_array)>0 ) {
    
         $get_leads_from_date=date('d M Y H:i:s', time()-60*60*24*30);
         $http_requester->{'header'}=array('if-modified-since: '.$get_leads_from_date);
@@ -211,36 +243,30 @@
       }      
    
    }
-
-  
    
    // Search companies by phone
    if( is_null($user_id) ) {
-       
-      $parameters=array();
-      $parameters['type']='company';
-      $parameters['query']=urlencode($parsed_client_phone);
-      $companies_array=get_companies_info($parameters, $http_requester);
-    
+
+      $companies_array=$companies_array_from_request;
+      
       reset($companies_array);
       while( list($key, $value)=each($companies_array) ) {
-	 if( is_numeric($value['user_id'])
-             && strlen($value['user_id'])>0 ) {
-             
-	    $user_id=$value['user_id'];
-	    $client_name=$value['name'];
-	    $redirection_type='3';
-	    break;
-	 }
+    	 if( is_numeric($value['user_id'])
+                 && strlen($value['user_id'])>0 ) {
+                 
+    	    $user_id=$value['user_id'];
+    	    $client_name=$value['name'];
+    	    $redirection_type='3';
+    	    break;
+    	 }
       }
 
       if( !is_null($user_id) ) {      
-	 write_log('User_id found in company, user_id='.$user_id, $amocrm_log_file, 'GET_CALL_TYPE');
+    	 write_log('User_id found in company, user_id='.$user_id, $amocrm_log_file, 'GET_CALL_TYPE');
       }
     
    }
-   
-   
+  
    if( !is_null($user_id)
        && strlen($user_id)>0 ) {
    
