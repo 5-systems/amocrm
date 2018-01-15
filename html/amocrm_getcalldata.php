@@ -5,7 +5,6 @@
    error_reporting(0);
    ini_set('display_errors', 0);
    
-   $_REQUEST['CallerNumber']='4955404614';
    if( count($_REQUEST)===0
        && count($argv)>1 ) {
 
