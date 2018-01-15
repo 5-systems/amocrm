@@ -29,6 +29,8 @@
       exit($result);    
    } 
 
+   $selected_uniqueid=null;
+   $selected_user_id=null;
    if( $db_conn!==false ) {
       
       $query_text="";      
@@ -75,8 +77,7 @@
       }
       else {
 	 
-    	 $selected_uniqueid=null;
-    	 $selected_user_id=null;
+
     	 $result_row_array=array();
     	 while($row = $db_result->fetch_assoc()) {
     	     
@@ -140,22 +141,7 @@
     	    break;
     	 }
     	 
-    	 $result=json_encode($result_row_array);
-    	 
-    	 // remove record
-    	 if( !is_null($selected_uniqueid)
-    	     && !is_null($selected_user_id) ) {
-    	     
-    	    $query_text="";
-    	    $query_text.=" delete from calls ";
-    	    $query_text.=" where ";
-    	    $query_text.=" calls.uniqueid='&uniqueid&' and calls.user_id='&user_id&' ";	    
-     	    
-     	    $query_text=set_parameter('uniqueid', $selected_uniqueid, $query_text);
-     	    $query_text=set_parameter('user_id', $selected_user_id, $query_text);
-     	    
-     	    $db_status=$db_conn->query($query_text);
-    	 }    
+    	 $result=json_encode($result_row_array);    
 	 
       }
       
@@ -177,7 +163,24 @@
            $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec*2);
            
            if( $lock_status===true ) {
+               
                unlock_database($db_conn, '');
+               
+               // remove record
+               if( !is_null($selected_uniqueid)
+                   && !is_null($selected_user_id) ) {
+                       
+                   $query_text="";
+                   $query_text.=" delete from calls ";
+                   $query_text.=" where ";
+                   $query_text.=" calls.uniqueid='&uniqueid&' and calls.user_id='&user_id&' ";
+                   
+                   $query_text=set_parameter('uniqueid', $selected_uniqueid, $query_text);
+                   $query_text=set_parameter('user_id', $selected_user_id, $query_text);
+                   
+                   $db_status=$db_conn->query($query_text);
+               }
+                              
            }
 
        }
