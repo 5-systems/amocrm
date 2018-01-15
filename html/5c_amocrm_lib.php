@@ -141,7 +141,9 @@
                 && is_array($value['custom_fields']) ) {
                     
                     $phone_is_found_in_contact=false;
-                    while( list($key_2, $value_2)=each($value['custom_fields']) ) {
+                    $custom_fields_array=$value['custom_fields'];
+                    reset($custom_fields_array);
+                    while( list($key_2, $value_2)=each($custom_fields_array) ) {
                         if( is_array($value_2)
                             && array_key_exists('id', $value_2)
                             && strVal($value_2['id'])===strVal($this->custom_field_phone_id)
@@ -149,6 +151,7 @@
                             && is_array($value_2['values']) ) {
                                 
                                 $phone_values=$value_2['values'];
+                                reset($phone_values);
                                 foreach($phone_values as $value_3) {
                                     if( is_array($value_3)
                                         && array_key_exists('value', $value_3)
@@ -822,8 +825,9 @@ class amocrm_http_requester {
                   if( is_array($divided_request_result)
                       && array_key_exists('response', $divided_request_result) )  {
                       
-                      reset($divided_request_result_array['response']);    
-                      while( list($key, $value)=each( $divided_request_result_array['response'] ) ) {
+                      $divided_request_result_array_response=$divided_request_result_array['response'];
+                      reset($divided_request_result_array_response);    
+                      while( list($key, $value)=each( $divided_request_result_array_response ) ) {
                           if( array_key_exists($key, $divided_request_result['response'])
                               && !is_numeric($key)
                               && is_array($divided_request_result_array['response'][$key])
