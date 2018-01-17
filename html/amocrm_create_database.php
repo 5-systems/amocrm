@@ -108,7 +108,17 @@
    
    $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot add all privileges to amocrmuser: '.$db_conn->error);  
+      exit('Cannot add all privileges to amocrmuser@ %: '.$db_conn->error);  
+   }
+   
+   $query_text="";
+   $query_text.="grant all privileges on `amocrm_phonestation`.* to '&amocrmuser&'@'localhost' identified by '&amocrmuser_password&';";
+   $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
+   $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);
+   
+   $db_status=$db_conn->query($query_text);
+   if( $db_status===false ) {
+       exit('Cannot add all privileges to amocrmuser@localhost: '.$db_conn->error);
    }
    
    $query_text="";
@@ -118,7 +128,17 @@
    
    $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
-      exit('Cannot add usage privilege to amocrmuser: '.$db_conn->error);  
+      exit('Cannot add usage privilege to amocrmuser@ %: '.$db_conn->error);  
+   }
+   
+   $query_text="";
+   $query_text.="grant usage on *.* to '&amocrmuser&'@'localhost' identified by '&amocrmuser_password&';";
+   $query_text=set_parameter('amocrmuser', $amocrm_database_user, $query_text);
+   $query_text=set_parameter('amocrmuser_password', $amocrm_database_password, $query_text);
+   
+   $db_status=$db_conn->query($query_text);
+   if( $db_status===false ) {
+       exit('Cannot add usage privilege to amocrmuser@localhost: '.$db_conn->error);
    }
    
 function set_parameter($parameter, $value, $template) {
