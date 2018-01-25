@@ -17,15 +17,6 @@
    @$login=$_REQUEST['param_login'];
    @$password=$_REQUEST['param_password'];
 
-   // Delete
-   $login='5systems';
-   $CallId='67582694';
-   $CallerNumber='9218888888';
-   $CallDate='20180125081801';
-   $MissedCall='1';
-   //$CalledNumber='907';
-   // Delete
-   
    
    if( !isset($login) ) $login='';
    if( !isset($password) ) $password='';
