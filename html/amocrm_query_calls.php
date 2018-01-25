@@ -31,6 +31,7 @@
 
    $selected_uniqueid=null;
    $selected_user_id=null;
+   $missed_call=false;
    if( $db_conn!==false ) {
       
       $query_text="";      
@@ -91,7 +92,9 @@
     	    $result_row_array["outcoming"]=strVal($row["outcoming"]);
     	    
     	    $selected_uniqueid=strVal($row["uniqueid"]);
-    	    $selected_user_id=strVal($row["user_id"]);	    
+    	    $selected_user_id=strVal($row["user_id"]);
+    	    
+    	    if( strVal($row["missed"])==='1' ) $missed_call=true;
     	    
             $result_row_array["from"]='';
             $result_row_array["to"]='';
@@ -152,7 +155,9 @@
        write_log('Result='.$result, $amocrm_log_file, 'QUERY');
        
        // try lock amocrm
-       $lock_priority=10;
+       $lock_priority=-5;
+       if( $missed_call===true ) $lock_priority=10;
+       
        $min_time_from_last_lock_sec=0;
        if( $amocrm_sleep_time_after_request_microsec>0 ) $min_time_from_last_lock_sec=$amocrm_sleep_time_after_request_microsec/1000000;
        
