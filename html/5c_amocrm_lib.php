@@ -129,8 +129,11 @@
         $parameters=array();
         $parameters['type']='contact';
         $parameters['query']=urlencode($parsed_phone);
-        $contacts_array=get_contact_info($parameters, $http_requester);
+        
+        $error_status=false;
+        $contacts_array=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
 
+        if( $error_status===true ) return($result);
         
         // Additional filter by phone
         $contacts_array_tmp=array();
@@ -193,7 +196,7 @@
         
     }
    
-    // Get compnies list
+    // Get companies list
     $company_id=0;
     if( strlen($parsed_phone)===10 ) {
         
@@ -201,7 +204,10 @@
         $parameters['type']='company';
         $parameters['query']=urlencode($parsed_phone);
         
-        $contacts_array=get_contact_info($parameters, $http_requester);
+        $error_status=false;
+        $contacts_array=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+        
+        if( $error_status===true ) return($result);
         
         $contacts_array_for_sort=array();
         reset($contacts_array);
@@ -292,6 +298,8 @@
       
       $return_result=false;
       $return_result=$http_requester->request();
+      
+      if( $return_result===true ) return($result);
                
       if( $return_result!==false ) {
         	$decoded_result=json_decode($return_result, true);
@@ -326,6 +334,8 @@
          
          $return_result=false;
          $return_result=$http_requester->request();
+         
+         if( $return_result===true ) return($result);
             
     	 if( $return_result!==false ) {
     	 
@@ -438,6 +448,8 @@
       
       $return_result=false;
       $return_result=$http_requester->request();
+      
+      if( $return_result===true ) return($result);
       
       if( $return_result!==false ) {
     	$decoded_result=json_decode($return_result, true);
@@ -586,11 +598,18 @@ function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_
       && $return_code_numeric!=202    
       && $return_code_numeric!=204 ) {
       
-    $status_text=(isset($errors[$return_code_numeric]) ? $errors[$return_code_numeric].' '.$return_result : 'Undescribed error: '.$return_code);
+    $status_text='';
+    if( isset($errors[$return_code_numeric]) ) {
+        $status_text='Error: '.$errors[$return_code_numeric].' code: '.$return_code.' result: '.substr($return_result, 1, 100);
+    }
+    else {
+        $status_text='Error code: '.$return_code.' result: '.substr($return_result, 1, 100);
+    }
+        
     $result=false;
   }
   else {
-    $status_text='success';
+    $status_text='success code: '.$return_code.' result: '.substr($return_result, 1, 100);
     $result=$return_result;      
   }
   
@@ -655,7 +674,7 @@ class amocrm_http_requester {
     if( $without_lock===false
         && isset($db_conn) ) {
             
-        $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority);
+        $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority, 1000, 0.0, $this->amocrm_account);
     }
     
     if( $lock_status===true ) {
@@ -664,7 +683,7 @@ class amocrm_http_requester {
         if( $without_lock===false
             && isset($db_conn) ) {
                 
-            unlock_database($db_conn);
+            unlock_database($db_conn, '', $this->amocrm_account);
         }
     }
     
@@ -695,7 +714,7 @@ class amocrm_http_requester {
   
   public function request() {
   
-    $result=false;
+    $result='';
 
     // Request
     $request_parameters=array();
@@ -706,6 +725,8 @@ class amocrm_http_requester {
     
     $divided_request=false;
     $limited_request=false;
+    
+    $request_is_failed=false;
     
     $initial_parameters=$this->parameters;
     if( (is_array($initial_parameters)
@@ -792,7 +813,7 @@ class amocrm_http_requester {
         $db_conn=($this->lock_database_connection);
         $lock_status=true;
         if( isset($db_conn) ) {
-            $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority);
+            $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority, 1000, 0.0, $this->amocrm_account);
         }
         
         if( $lock_status===true ) {
@@ -809,7 +830,7 @@ class amocrm_http_requester {
             }
             
             if( isset($db_conn) ) {
-                unlock_database($db_conn);
+                unlock_database($db_conn, '', $this->amocrm_account);
             }    
         }
         
@@ -882,7 +903,9 @@ class amocrm_http_requester {
             
         }
         else {
-            $continue_cycle=false;            
+            $continue_cycle=false;
+            $result=$return_result;
+            $request_is_failed=true;
         }
         
         if( !isset($db_conn) ) {
@@ -899,9 +922,14 @@ class amocrm_http_requester {
     
     if( ( $divided_request===true
           || $limited_request===true )
-        && is_array($divided_request_result_array) ) {
+         && is_array($divided_request_result_array) ) {
         
         $result=json_encode($divided_request_result_array);
+    }
+    
+    if( $request_is_failed===true ) {
+        $result=false;
+        write_log('request failed', $this->log_file);
     }
 	  
     return($result);     
@@ -912,7 +940,7 @@ class amocrm_http_requester {
 
 
 function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_field_user_phone, $amocrm_http_requester=null,
-				 $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+				                 $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    $result='';
    
@@ -942,74 +970,76 @@ function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_f
 
       $return_result=$http_requester->request();
       
+      if( $return_result===false ) $error_status=true;
+      
       if( $return_result!==false ) {
       
-	 $decoded_result=json_decode($return_result, true);
-	 $response=$decoded_result['response'];
-
-	 $client_contact=null;
-	 if( isset($response['contacts'])
-	       && count($response['contacts'])>0 ) {
-	       
-	    $client_contacts=$response['contacts'];
-	    reset($client_contacts);
-	    while( list($key, $value)=each($client_contacts) ) {
-	    
-	       if( is_array($value)
-		     && isset($value['custom_fields'])
-		     && count($value['custom_fields'])>0 ) {
-		     
-		  $custom_fields=$value['custom_fields'];
-		  reset($custom_fields);
-		  while( list($key_2, $value_2)=each($custom_fields) ) {
-
-		     if( is_array($value_2)
-			&& isset($value_2['id'])
-			&& strVal($value_2['id'])===strVal($custom_field_user_amo_crm)
-			&& is_array($value_2['values'])
-			&& strVal($value_2['values'][0]['value'])===strVal($user_id) ) {
-			
-			$client_contact=$value;
-			break;
-		     }
-		     
-		  }
-				 
-	       }
-	       
-	       if( !is_null($client_contact) ) break;
-	    
-	    }
-	    
-	    
-	 } // search for contact
-	 
-	 // search for user phone
-	 if( is_array($client_contact)
-	       && isset($client_contact['custom_fields'])
-	       && count($client_contact['custom_fields'])>0 ) {
-	       
-	    $custom_fields=$client_contact['custom_fields'];
-	    reset($custom_fields);
-	    while( list($key, $value)=each($custom_fields) ) {
-	       
-	       if( is_array($value)
-		  && isset($value['id'])
-		  && $value['id']!==$custom_field_user_phone ) continue; 
-
-	       $values_array=$value['values'];	  
-	       
-	       if( is_array($values_array)
-		  && count($values_array)>0
-		  && isset($values_array[0]['value']) ) {
-	       
-		  $user_phone=$values_array[0]['value'];
-		  break;	    
-	       }
-		  
-	    } 
-			   
-	 } // search for user phone
+    	 $decoded_result=json_decode($return_result, true);
+    	 $response=$decoded_result['response'];
+    
+    	 $client_contact=null;
+    	 if( isset($response['contacts'])
+    	       && count($response['contacts'])>0 ) {
+    	       
+    	    $client_contacts=$response['contacts'];
+    	    reset($client_contacts);
+    	    while( list($key, $value)=each($client_contacts) ) {
+    	    
+    	       if( is_array($value)
+    		     && isset($value['custom_fields'])
+    		     && count($value['custom_fields'])>0 ) {
+    		     
+    		  $custom_fields=$value['custom_fields'];
+    		  reset($custom_fields);
+    		  while( list($key_2, $value_2)=each($custom_fields) ) {
+    
+    		     if( is_array($value_2)
+    			&& isset($value_2['id'])
+    			&& strVal($value_2['id'])===strVal($custom_field_user_amo_crm)
+    			&& is_array($value_2['values'])
+    			&& strVal($value_2['values'][0]['value'])===strVal($user_id) ) {
+    			
+    			$client_contact=$value;
+    			break;
+    		     }
+    		     
+    		  }
+    				 
+    	       }
+    	       
+    	       if( !is_null($client_contact) ) break;
+    	    
+    	    }
+    	    
+    	    
+    	 } // search for contact
+    	 
+    	 // search for user phone
+    	 if( is_array($client_contact)
+    	       && isset($client_contact['custom_fields'])
+    	       && count($client_contact['custom_fields'])>0 ) {
+    	       
+    	    $custom_fields=$client_contact['custom_fields'];
+    	    reset($custom_fields);
+    	    while( list($key, $value)=each($custom_fields) ) {
+    	       
+    	       if( is_array($value)
+    		  && isset($value['id'])
+    		  && $value['id']!==$custom_field_user_phone ) continue; 
+    
+    	       $values_array=$value['values'];	  
+    	       
+    	       if( is_array($values_array)
+    		  && count($values_array)>0
+    		  && isset($values_array[0]['value']) ) {
+    	       
+    		  $user_phone=$values_array[0]['value'];
+    		  break;	    
+    	       }
+    		  
+    	    } 
+    			   
+    	 } // search for user phone
 
       } // request ok
 
@@ -1020,8 +1050,9 @@ function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_f
    return($result);
 }
 
+
 function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $amocrm_http_requester=null,
-				 $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                                     $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    
    $result=array();
@@ -1052,83 +1083,85 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 
       $return_result=$http_requester->request();
       
+      if( $return_result===false ) $error_status=true;
+      
       if( $return_result!==false ) {
       
-	 $decoded_result=json_decode($return_result, true);
-	 $response=$decoded_result['response'];
-
-	 $client_contact=null;
-	 if( isset($response['contacts'])
-	       && count($response['contacts'])>0 ) {
-	       
-	    $client_contacts=$response['contacts'];
-	    reset($client_contacts);
-	    while( list($key, $value)=each($client_contacts) ) {
-	    
-	       if( is_array($value)
-		     && isset($value['custom_fields'])
-		     && count($value['custom_fields'])>0 ) {
-		     
-		  $custom_fields=$value['custom_fields'];
-		  reset($custom_fields);
-		  while( list($key_2, $value_2)=each($custom_fields) ) {
-	       
-		     if( is_array($value_2)
-			&& isset($value_2['id'])
-			&& $value_2['id']===$custom_field_user_phone
-			&& is_array($value_2['values'])
-			&& $value_2['values'][0]['value']===$user_phone ) {
-			
-			$client_contact=$value;
-			break;
-		     }
-		     
-		  }
-				 
-	       }
-	       
-	       if( !is_null($client_contact) ) break;
-	    
-	    }
-	    
-	    
-	 } // search for contact
-
-	 
-	 // search for user_id
-	 if( is_array($client_contact)
-	       && isset($client_contact['custom_fields'])
-	       && count($client_contact['custom_fields'])>0 ) {
-	       
-	    $custom_fields=$client_contact['custom_fields'];
-	    reset($custom_fields);
-	    while( list($key, $value)=each($custom_fields) ) {
-	       
-	       if( is_array($value)
-		  && isset($value['id'])
-		  && $value['id']!==$custom_field_user_amo_crm ) continue; 
-
-	       $values_array=$value['values'];	  
-	       
-	       if( is_array($values_array)
-		  && count($values_array)>0
-		  && isset($values_array[0]['value']) ) {
-	       
-		  $user_id=$values_array[0]['value'];
-		  $result["user_id"]=strVal($user_id);
-		  break;	    
-	       }
-		  
-	    } 
-			   
-	 } // search for user_id
-	 
-	 // search for other info
-	 if( is_array($client_contact) ) {	    
-	    if( array_key_exists("name", $client_contact) ) $result["name"]=$client_contact["name"];
-	    if( array_key_exists("id", $client_contact) ) $result["contact_id"]=strVal($client_contact["id"]);	 
-	    if( array_key_exists("responsible_user_id", $client_contact) ) $result["responsible_user_id"]=strVal($client_contact["responsible_user_id"]);	 
-	 }
+    	 $decoded_result=json_decode($return_result, true);
+    	 $response=$decoded_result['response'];
+    
+    	 $client_contact=null;
+    	 if( isset($response['contacts'])
+    	       && count($response['contacts'])>0 ) {
+    	       
+    	    $client_contacts=$response['contacts'];
+    	    reset($client_contacts);
+    	    while( list($key, $value)=each($client_contacts) ) {
+    	    
+    	       if( is_array($value)
+    		     && isset($value['custom_fields'])
+    		     && count($value['custom_fields'])>0 ) {
+    		     
+    		  $custom_fields=$value['custom_fields'];
+    		  reset($custom_fields);
+    		  while( list($key_2, $value_2)=each($custom_fields) ) {
+    	       
+    		     if( is_array($value_2)
+    			&& isset($value_2['id'])
+    			&& $value_2['id']===$custom_field_user_phone
+    			&& is_array($value_2['values'])
+    			&& $value_2['values'][0]['value']===$user_phone ) {
+    			
+    			$client_contact=$value;
+    			break;
+    		     }
+    		     
+    		  }
+    				 
+    	       }
+    	       
+    	       if( !is_null($client_contact) ) break;
+    	    
+    	    }
+    	    
+    	    
+    	 } // search for contact
+    
+    	 
+    	 // search for user_id
+    	 if( is_array($client_contact)
+    	       && isset($client_contact['custom_fields'])
+    	       && count($client_contact['custom_fields'])>0 ) {
+    	       
+    	    $custom_fields=$client_contact['custom_fields'];
+    	    reset($custom_fields);
+    	    while( list($key, $value)=each($custom_fields) ) {
+    	       
+    	       if( is_array($value)
+    		  && isset($value['id'])
+    		  && $value['id']!==$custom_field_user_amo_crm ) continue; 
+    
+    	       $values_array=$value['values'];	  
+    	       
+    	       if( is_array($values_array)
+    		  && count($values_array)>0
+    		  && isset($values_array[0]['value']) ) {
+    	       
+    		  $user_id=$values_array[0]['value'];
+    		  $result["user_id"]=strVal($user_id);
+    		  break;	    
+    	       }
+    		  
+    	    } 
+    			   
+    	 } // search for user_id
+    	 
+    	 // search for other info
+    	 if( is_array($client_contact) ) {	    
+    	    if( array_key_exists("name", $client_contact) ) $result["name"]=$client_contact["name"];
+    	    if( array_key_exists("id", $client_contact) ) $result["contact_id"]=strVal($client_contact["id"]);	 
+    	    if( array_key_exists("responsible_user_id", $client_contact) ) $result["responsible_user_id"]=strVal($client_contact["responsible_user_id"]);	 
+    	 }
 
       } // request ok
 
@@ -1139,7 +1172,7 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 
 
 function get_contact_info($parameters='', $amocrm_http_requester=null,
-				   $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                          $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 				   
    $result=array();
    
@@ -1162,7 +1195,10 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
    $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
    $http_requester->{'parameters'}=$parameters;
    
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1173,20 +1209,20 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
           && is_array($decoded_result['response']['contacts'])
           && count($decoded_result['response']['contacts'])>0 ) {
 	    
-	 $client_contacts=$decoded_result['response']['contacts'];
-	 reset($client_contacts);
-	 while( list($key, $value)=each($client_contacts) ) {
-	    $contact_data=array();
-	    $contact_data['contact_id']=strval($value['id']);
-	    $contact_data['company_id']=strval($value['linked_company_id']);
-	    $contact_data['name']=strval($value['name']);
-	    $contact_data['last_modified']=strval($value['last_modified']);
-	    $contact_data['linked_leads_id']=$value['linked_leads_id'];
-	    $contact_data['user_id']=$value['responsible_user_id'];
-            $contact_data['custom_fields']=$value['custom_fields'];
-	    
-	    $contacts_array[ intval($value['id']) ]=$contact_data;	 
-	 }
+    	 $client_contacts=$decoded_result['response']['contacts'];
+    	 reset($client_contacts);
+    	 while( list($key, $value)=each($client_contacts) ) {
+    	    $contact_data=array();
+    	    $contact_data['contact_id']=strval($value['id']);
+    	    $contact_data['company_id']=strval($value['linked_company_id']);
+    	    $contact_data['name']=strval($value['name']);
+    	    $contact_data['last_modified']=strval($value['last_modified']);
+    	    $contact_data['linked_leads_id']=$value['linked_leads_id'];
+    	    $contact_data['user_id']=$value['responsible_user_id'];
+                $contact_data['custom_fields']=$value['custom_fields'];
+    	    
+    	    $contacts_array[ intval($value['id']) ]=$contact_data;	 
+    	 }
 	 
       }
       
@@ -1202,7 +1238,7 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
 
 
 function get_company_info($parameters='', $amocrm_http_requester=null,
-				   $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                          $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    global $custom_field_do_not_create_lead;
 				   
@@ -1228,6 +1264,9 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
    $http_requester->{'parameters'}=$parameters;
    
    $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1255,19 +1294,19 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
 	       reset($custom_fields);
 	       while( list($key_2, $value_2)=each($custom_fields) ) {
 		  
-		  if( is_array($value_2)
-		     && array_key_exists('id', $value_2)
-		     && strval($value_2['id'])===$custom_field_do_not_create_lead
-		     && array_key_exists('values', $value_2)
-		     && is_array($value_2['values'])
-		     && count($value_2['values'])>0
-		     && is_array($value_2['values'][0])
-		     && array_key_exists('value', $value_2['values'][0])
-		     && strval($value_2['values'][0]['value'])==='1' ) {
-		     
-		     $company_data['create_lead']=false;
-		     break;
-		  }
+    		  if( is_array($value_2)
+    		     && array_key_exists('id', $value_2)
+    		     && strval($value_2['id'])===$custom_field_do_not_create_lead
+    		     && array_key_exists('values', $value_2)
+    		     && is_array($value_2['values'])
+    		     && count($value_2['values'])>0
+    		     && is_array($value_2['values'][0])
+    		     && array_key_exists('value', $value_2['values'][0])
+    		     && strval($value_2['values'][0]['value'])==='1' ) {
+    		     
+    		     $company_data['create_lead']=false;
+    		     break;
+    		  }
 	       
 	       }
 	       
@@ -1291,7 +1330,7 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
 
 
 function get_leads_info($parameters='', $amocrm_http_requester=null,
-			$amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                        $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    $result=array();
    
@@ -1315,6 +1354,9 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
    $http_requester->{'parameters'}=$parameters;
    
    $return_result=$http_requester->request(); 
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1355,7 +1397,7 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
 
 
 function get_companies_info($parameters='', $amocrm_http_requester=null,
-			$amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                            $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    $result=array();
    
@@ -1378,7 +1420,10 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
    $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
    $http_requester->{'parameters'}=$parameters;
    
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1415,9 +1460,8 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
 }
 
 
-
 function create_lead($name, $status_id, $responsible_user_id, $company_id, $fields=array(), $amocrm_http_requester=null,
-		             $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                     $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    global $custom_field_address_type;
    global $custom_field_first_called_number;
@@ -1494,7 +1538,9 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
    $http_requester->{'parameters'}=$parameters_json;
    
    $return_result=false;
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
    
    $result=$return_result;
    
@@ -1504,7 +1550,7 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
 
 
 function update_contact_info($parameters='', $updated_fields=array(), $amocrm_http_requester=null,
-				   $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                             $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 				   
    $result=false;
    
@@ -1526,7 +1572,10 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
    $last_modified=0;
    $linked_leads_id=null;
    
-   $contacts_info=get_contact_info($parameters, $http_requester);
+   $contacts_info=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   
+   if( $error_status===true ) return($result);
+   
    if( is_array($contacts_info)
        && count($contacts_info)>0 ) {
       
@@ -1543,7 +1592,7 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
 	     
 	 if( is_array($value['linked_leads_id']) ) $linked_leads_id=$value['linked_leads_id'];    
 	     
-	 break;
+    	 break;
       }
       
    }
@@ -1586,7 +1635,10 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
    $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/set';
    $http_requester->{'parameters'}=$request_parameters_json;
    
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1597,7 +1649,7 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
           && is_array($decoded_result['response']['contacts'])
           && count($decoded_result['response']['contacts'])>0 ) {
 	 
-	 $result=true;	 
+    	 $result=true;	 
       }
       
    }
@@ -1607,7 +1659,7 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
 
 
 function get_notes_info($parameters='', $amocrm_http_requester=null,
-			$amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                        $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    $result=array();
    
@@ -1630,7 +1682,10 @@ function get_notes_info($parameters='', $amocrm_http_requester=null,
    $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/notes/list';
    $http_requester->{'parameters'}=$parameters;
    
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1674,7 +1729,7 @@ function get_notes_info($parameters='', $amocrm_http_requester=null,
 
 
 function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http_requester=null,
-			  $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                            $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 				   
    $result=false;
    
@@ -1693,44 +1748,47 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
    }
    
    $notes_update=array();
-   $notes_info=get_notes_info($parameters, $http_requester);
+   $notes_info=get_notes_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   
+   if( $error_status===true ) return($result);
+   
    if( is_array($notes_info)
        && count($notes_info)>0 ) {
       
       reset($notes_info);
       while( list($key, $value)=each($notes_info) ) {
       
-	 $note_data=array();
-	 $note_data['id']=intVal($value['note_id']);
-	 $note_data['element_id']=intVal($value['element_id']);
-	 $note_data['element_type']=intVal($value['element_type']);
-	 $note_data['created_user_id']=intVal($value['created_user_id']);
-	 $note_data['responsible_user_id']=intVal($value['responsible_user_id']);
-	 $note_data['text']=strVal($value['text']);
-	 $note_data['last_modified']=intVal($value['last_modified']);
-          
-	 $last_modified=0;
-	 if( is_array($value)
-	     && array_key_exists('last_modified', $value)
-	     && is_numeric($value['last_modified'])
-	     && intVal($value['last_modified'])>$last_modified ) $last_modified=intVal($value['last_modified']);
-	 
-	 if( $last_modified===0 ) $last_modified=time();
-	 
-	 $note_data['last_modified']=($last_modified+1);
-	 
-	 $note_id_numeric=intVal($value['note_id']);
-	 reset($updated_fields);
-	 if( array_key_exists($note_id_numeric, $updated_fields) ) {
-	 
-	    reset($updated_fields[$note_id_numeric]);
-	    while( list($key_2, $value_2)=each($updated_fields[$note_id_numeric]) ) {
-	       $note_data[$key_2]=$value_2;	    
-	    }
-	 
-	 }
-	 
-	 $notes_update[]=$note_data;	 
+    	 $note_data=array();
+    	 $note_data['id']=intVal($value['note_id']);
+    	 $note_data['element_id']=intVal($value['element_id']);
+    	 $note_data['element_type']=intVal($value['element_type']);
+    	 $note_data['created_user_id']=intVal($value['created_user_id']);
+    	 $note_data['responsible_user_id']=intVal($value['responsible_user_id']);
+    	 $note_data['text']=strVal($value['text']);
+    	 $note_data['last_modified']=intVal($value['last_modified']);
+              
+    	 $last_modified=0;
+    	 if( is_array($value)
+    	     && array_key_exists('last_modified', $value)
+    	     && is_numeric($value['last_modified'])
+    	     && intVal($value['last_modified'])>$last_modified ) $last_modified=intVal($value['last_modified']);
+    	 
+    	 if( $last_modified===0 ) $last_modified=time();
+    	 
+    	 $note_data['last_modified']=($last_modified+1);
+    	 
+    	 $note_id_numeric=intVal($value['note_id']);
+    	 reset($updated_fields);
+    	 if( array_key_exists($note_id_numeric, $updated_fields) ) {
+    	 
+    	    reset($updated_fields[$note_id_numeric]);
+    	    while( list($key_2, $value_2)=each($updated_fields[$note_id_numeric]) ) {
+    	       $note_data[$key_2]=$value_2;	    
+    	    }
+    	 
+    	 }
+    	 
+    	 $notes_update[]=$note_data;	 
       }
       
    }
@@ -1745,7 +1803,10 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
    $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/notes/set';
    $http_requester->{'parameters'}=$request_parameters_json;
    
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
    if( $return_result!==false ) {
    
       $decoded_result=json_decode($return_result, true);
@@ -1756,7 +1817,7 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
           && is_array($decoded_result['response']['notes'])
           && count($decoded_result['response']['notes'])>0 ) {
 	 
-	 $result=true;	 
+	      $result=true;	 
       }
       
    }
@@ -1767,7 +1828,7 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
 
 function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
                          $contact_name, $company_id, $record_link='', $outcoming=false, $fields=array(), $amocrm_http_requester=null,
-		         $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null) {
+                         $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
    global $custom_field_phone_id;
    global $custom_field_phone_enum;  
@@ -1931,7 +1992,9 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
    $http_requester->{'header'}=array('Content-Type: application/json');
    
    $return_result=false;
-   $return_result=$http_requester->request(); 
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
    
    $http_requester->{'header'}='';
    

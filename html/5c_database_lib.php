@@ -51,9 +51,12 @@ function mysql_delete_rows($db_conn, $database_name, $table, $select_condition, 
 
 
 function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
-    $time_interval_between_lock_tries_sec=0.1, $max_wait_time_for_lock_sec=10, $priority=0, $max_number_cycles=1000, $lock_time_shift=0.0) {
+                        $time_interval_between_lock_tries_sec=0.1, $max_wait_time_for_lock_sec=10, $priority=0,
+                        $max_number_cycles=1000, $lock_time_shift=0.0, $queue_name='') {
         
         $result=false;
+        
+        $queue_name=strVal($queue_name);
 
         $write_log_messages=false;
         if( strlen($log_file)>0 ) $write_log_messages=true;
@@ -61,59 +64,66 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
         $pid=getmypid();
         
         if( $write_log_messages===true ) {
-            write_log('blank_line', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+            write_log('blank_line', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
         }
         
         if( !is_object($db_conn) ) {
             
             if( $write_log_messages===true ) {    
-                write_log('lock_amocrm_database: connection is not an object! ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                write_log('lock_amocrm_database: connection is not an object! ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
             }
             
         }
         
         $start_time=microtime(true);
         if( $write_log_messages===true ) {
-            write_log('lock_amocrm_database: start '.strVal($start_time), $log_file, 'LOCK_AMOCRM '.strVal($pid));
+            write_log('lock_amocrm_database: start '.strVal($start_time), $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
         }
         
-        $query_text_enter_queue="insert into &table_name& (pid, time, priority) values(&pid&, &time&, &priority&)";
+        $query_text_enter_queue="insert into &table_name& (queue_name, pid, time, priority) values('&queue_name&', &pid&, &time&, &priority&)";
         $query_text_enter_queue=template_set_parameter('table_name', 'queue', $query_text_enter_queue);
         $query_text_enter_queue=template_set_parameter('pid', sprintf('%d', $pid), $query_text_enter_queue);
         $query_text_enter_queue=template_set_parameter('time', sprintf('%.6f', $start_time), $query_text_enter_queue);
         $query_text_enter_queue=template_set_parameter('priority', sprintf('%d', $priority), $query_text_enter_queue);
+        $query_text_enter_queue=template_set_parameter('queue_name', $queue_name, $query_text_enter_queue);
         
         $query_result=$db_conn->query($query_text_enter_queue);
         
         if( $query_result===false ) {
             
             if( $write_log_messages===true ) {
-                write_log('lock_amocrm_database: cannot insert into queue! ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                write_log('lock_amocrm_database: cannot insert into queue '.$queue_name, $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
             }
             
             return($result);
         }
         
         $query_text_select_from_queue="select COUNT(*) as num from ";
-        $query_text_select_from_queue.=" (select pid, time from &table_name& order by priority asc, time asc limit 1) as common";
+        $query_text_select_from_queue.=" (select pid, time from &table_name& where queue_name='&queue_name&' order by priority asc, time asc limit 1) as common";
         $query_text_select_from_queue.=" where common.pid=&pid& and common.time=&time& ";
         $query_text_select_from_queue=template_set_parameter('table_name', 'queue', $query_text_select_from_queue);
         $query_text_select_from_queue=template_set_parameter('pid', sprintf('%d', $pid), $query_text_select_from_queue);
         $query_text_select_from_queue=template_set_parameter('time', sprintf('%.6f', $start_time), $query_text_select_from_queue);
+        $query_text_select_from_queue=template_set_parameter('queue_name', $queue_name, $query_text_select_from_queue);
         
-        $query_text_remove_from_queue="delete from &table_name& where pid=&pid& and time=&time&";
+        $query_text_remove_from_queue="delete from &table_name& where pid=&pid& and time=&time& and queue_name='&queue_name&'";
         $query_text_remove_from_queue=template_set_parameter('table_name', 'queue', $query_text_remove_from_queue);
         $query_text_remove_from_queue=template_set_parameter('pid', sprintf('%d', $pid), $query_text_remove_from_queue);
         $query_text_remove_from_queue=template_set_parameter('time', sprintf('%.6f', $start_time), $query_text_remove_from_queue);
+        $query_text_remove_from_queue=template_set_parameter('queue_name', $queue_name, $query_text_remove_from_queue);
         
-        $query_text_get_time="select time from &table_name& where id=1";
+        $query_text_get_time="select time from &table_name& where id=1 and queue_name='&queue_name&'";
         $query_text_get_time=template_set_parameter('table_name', 'locks', $query_text_get_time);
+        $query_text_get_time=template_set_parameter('queue_name', $queue_name, $query_text_get_time);
         
-        $query_text_lock="insert into &table_name& (id, time) values(2, &current_time&)";
+        $query_text_lock="insert into &table_name& (queue_name, id, time) values('&queue_name&', 2, &current_time&)";
         $query_text_lock=template_set_parameter('table_name', 'locks', $query_text_lock);
+        $query_text_lock=template_set_parameter('queue_name', $queue_name, $query_text_lock);
         
-        $query_text_set_time="replace into &table_name& (id, time) values(1, &current_time&)";
+        $query_text_set_time="replace into &table_name& (queue_name, id, time) values('&queue_name&', 1, &current_time&)";
         $query_text_set_time=template_set_parameter('table_name', 'locks', $query_text_set_time);
+        $query_text_set_time=template_set_parameter('queue_name', $queue_name, $query_text_set_time);
+        
         
         
         $cycle_count=0;
@@ -129,7 +139,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             if( ($current_time-$start_time)>$max_wait_time_for_lock_sec ) {
                 
                 if( $write_log_messages===true ) {
-                    write_log('lock_amocrm_database: maximum time for lock is exceeded ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                    write_log('lock_amocrm_database: maximum time for lock is exceeded ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
                 }
                 
                 break;
@@ -138,7 +148,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             if( $cycle_count>$max_number_cycles ) {
                 
                 if( $write_log_messages===true ) {
-                    write_log('lock_amocrm_database: number of cycles exceeded maximum ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                    write_log('lock_amocrm_database: number of cycles exceeded maximum ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
                 }
                 
                 break;
@@ -162,7 +172,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                         $top_in_queue=true;
                         
                         if( $write_log_messages===true ) {
-                            write_log('lock_amocrm_database: process in the top of queue ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                            write_log('lock_amocrm_database: process in the top of queue ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
                         }
                         
                 }
@@ -190,7 +200,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                         $lock_is_possible=true;
                         
                         if( $write_log_messages===true ) {
-                            write_log('lock_amocrm_database: lock is possible ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                            write_log('lock_amocrm_database: lock is possible ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
                         }
                         
                 }
@@ -214,7 +224,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                         $result=$query_status;
                         
                         if( $write_log_messages===true ) {
-                            write_log('lock_amocrm_database: lock is successful ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                            write_log('lock_amocrm_database: lock is successful ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
                         }
                         
                         break;
@@ -233,7 +243,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
         if( $query_status===true ) {
             
             if( $write_log_messages===true ) {
-                write_log('lock_amocrm_database: process removed from queue ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+                write_log('lock_amocrm_database: process removed from queue ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
             }
             
         }
@@ -243,9 +253,11 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
 }
 
 
-function unlock_database($db_conn, $log_file='') {
+function unlock_database($db_conn, $log_file='', $queue_name='') {
     
     $result=false;
+    
+    $queue_name=strVal($queue_name);
 
     $pid=getmypid();
     
@@ -255,13 +267,14 @@ function unlock_database($db_conn, $log_file='') {
     if( !is_object($db_conn) ) {
         
         if( $write_log_messages===true ) {
-            write_log('unlock_amocrm_database: connection is not an object! ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+            write_log('unlock_amocrm_database: connection is not an object! ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
         }
         
     }
     
-    $query_text_unlock="delete from &table_name& where id=2";
+    $query_text_unlock="delete from &table_name& where id=2 and queue_name='&queue_name&'";
     $query_text_unlock=template_set_parameter('table_name', 'locks', $query_text_unlock);
+    $query_text_unlock=template_set_parameter('queue_name', $queue_name, $query_text_unlock);
     
     $query_status=$db_conn->query($query_text_unlock);
     $result=$query_status;
@@ -269,7 +282,7 @@ function unlock_database($db_conn, $log_file='') {
     if( $query_status===true ) {
         
         if( $write_log_messages===true ) {
-            write_log('unlock_amocrm_database: unlock is successful ', $log_file, 'LOCK_AMOCRM '.strVal($pid));
+            write_log('unlock_amocrm_database: unlock is successful ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
         }
         
     }

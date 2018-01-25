@@ -63,8 +63,10 @@
    // Create table locks
    $query_text="";
    $query_text.="create table &table_name& (";
-   $query_text.="   id numeric(10,0) primary key NOT NULL DEFAULT 0,";
-   $query_text.="   time numeric(16,6) NOT NULL DEFAULT 0";
+   $query_text.="   queue_name varchar(100) NOT NULL DEFAULT '',";
+   $query_text.="   id numeric(10,0) NOT NULL DEFAULT 0,";
+   $query_text.="   time numeric(16,6) NOT NULL DEFAULT 0,";
+   $query_text.="   PRIMARY KEY (queue_name, id)";
    $query_text.=") ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
    $query_text=set_parameter('table_name', 'locks', $query_text);
@@ -77,6 +79,7 @@
    // Create table for queue
    $query_text="";
    $query_text.="create table &table_name& (";
+   $query_text.="   queue_name varchar(100) NOT NULL DEFAULT '',";
    $query_text.="   pid numeric(10,0) NOT NULL DEFAULT 0,";
    $query_text.="   time numeric(16,6) NOT NULL DEFAULT 0,";
    $query_text.="   priority numeric(10,0) NOT NULL DEFAULT 0";

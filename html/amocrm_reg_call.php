@@ -16,6 +16,15 @@
    @$Account=$_REQUEST['Account'];
    @$login=$_REQUEST['param_login'];
    @$password=$_REQUEST['param_password'];
+
+   // Delete
+   $login='5systems';
+   $CallId='67582694';
+   $CallerNumber='9218888888';
+   $CallDate='20180125081801';
+   $MissedCall='1';
+   //$CalledNumber='907';
+   // Delete
    
    
    if( !isset($login) ) $login='';
@@ -79,11 +88,19 @@
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
    if( strlen($user_phone)>0 ) {
-      $user_info=get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester);
+       
+      $error_status=false;
+      $user_info=get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester,
+                                             null, null, null, null, null, $error_status);
+      
+      if( $error_status===true ) {
+          write_log('Search for user: request error', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+          exit;
+      }
       
       if( is_array($user_info) ) {
-	  if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
-	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];      
+    	  if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
+    	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];      
       }
    }
 
@@ -125,7 +142,14 @@
         $registrator->{'create_contact'}=false;
     }
     
-    $registrator->register_call();
+    $registration_status=false;
+    $registration_status=$registrator->register_call();
+    
+    if( $registration_status===false ) {
+        write_log('Call registration failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+        exit;
+    }
+    
     $contact_created=$registrator->{'contact_created'};
   
    
@@ -141,8 +165,15 @@
    
    $parameters=array();
    $parameters['type']='contact';
-   $parameters['query']=urlencode($parsed_client_phone);   
-   $contacts_array=get_contact_info($parameters, $http_requester);
+   $parameters['query']=urlencode($parsed_client_phone);
+   
+   $error_status=false;
+   $contacts_array=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   
+   if( $error_status===true ) {
+       write_log('get_contact_info failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+       exit;
+   }
    
    // Additional filter by phone
    $contacts_array_tmp=array();
@@ -209,31 +240,59 @@
             && intval($value['company_id'])>0 ) $companies_array[ intval($value['company_id']) ]=strval($value['company_id']);
   }
   
-  if( is_null($client_contact) ) {
-         
-      $parameters=array();
-      $parameters['type']='company';
-      $parameters['query']=urlencode($parsed_client_phone);
-      $companies_array=get_company_info($parameters, $http_requester);
+  $companies_array_from_request=array();
+  
+  $parameters=array();
+  $parameters['type']='company';
+  $parameters['query']=urlencode($parsed_client_phone);
+    
+  $error_status=false;
+  $companies_array_from_request=get_company_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+    
+  if( $error_status===true ) {
+      write_log('get_company_info (phone) failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+      exit;
+  }
+    
+  reset($companies_array_from_request);
+  while( list($key, $value)=each($companies_array_from_request) ) {
       
-      reset($companies_array);
-      while( list($key, $value)=each($companies_array) ) {
-	    $client_company=$value['company_id'];
-	    $client_company_name=$value['name'];
-	    break;
-      }
-      
-      write_log('Search for company, company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);  
+      if( is_null($client_contact) ) {
+          $client_company=$value['company_id'];
+          $client_company_name=$value['name'];
+      }    
+          
+      break;
   }
   
+  reset($companies_array_from_request);
+  while( list($key, $value)=each($companies_array_from_request) ) {
+      
+      if( is_numeric($value['company_id'])
+          && strlen($value['company_id'])>0 ) {
+              
+          $companies_array[ intval($value['company_id']) ]=strval($value['company_id']);                 
+      }
+          
+  }
+    
+  write_log('Search for company, company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);  
+
 
     // Check if we need to create lead
     $create_lead=true;
     if( !is_null($client_company) ) { 
         $parameters=array();
         $parameters['type']='company';
-        $parameters['id']=urlencode($client_company);   
-        $companies_array=get_company_info($parameters, $http_requester);
+        $parameters['id']=urlencode($client_company);
+        
+        $error_status=false;
+        $companies_array=get_company_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+        
+        if( $error_status===true ) {
+            write_log('get_company_info (company_id) failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+            exit;
+        }
 
         reset($companies_array);
         while( list($key, $value)=each($companies_array) ) {
@@ -255,8 +314,14 @@
     $get_leads_from_date=date('d M Y H:i:s', time()-60*60*24*30);
     $http_requester->{'header'}=array('if-modified-since: '.$get_leads_from_date);
 
-    $leads_array=get_leads_info('', $http_requester);
+    $error_status=false;
+    $leads_array=get_leads_info('', $http_requester, null, null, null, null, null, $error_status);
 
+    if( $error_status===true ) {
+        write_log('get_leads_info failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+        exit;
+    }
+    
     $http_requester->{'header'}='';
 
     $lead_id=null;
@@ -325,7 +390,13 @@
                                      $OutcomingCall, $parsed_client_phone,
                                      $MissedCall, $FromWeb, $FirstCalledNumber);
           
-          if( strlen($lead_id)>0 ) $lead_created=true;
+          if( strlen($lead_id)>0 ) {
+              $lead_created=true;
+          }
+          else {
+              write_log('create_lead_local failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+              exit;
+          }
           
       }
       elseif( strlen($user_phone)===0 ) {
@@ -342,7 +413,13 @@
                                              $OutcomingCall, $MissedCall, $FromWeb, $FirstCalledNumber);
 
           
-          if( strlen($unsorted_id)>0 ) $unsorted_created=true;
+          if( strlen($unsorted_id)>0 ) {
+              $unsorted_created=true;
+          }
+          else {
+              write_log('create_unsorted_local failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+              exit;
+          }
       }
       
 
@@ -351,12 +428,20 @@
           && strlen($lead_id)>0
           && is_numeric($lead_id) ) {
           
-	 $parameters=array("id"=>$client_contact);
-	 $updated_fields=array("linked_leads_id"=>array( intVal($lead_id) ));
-	 $update_result=update_contact_info($parameters, $updated_fields, $http_requester);
-	 if( $update_result===false ) {
-	    write_log('Lead is not attached to contact, lead_id='.$lead_id.', contact_id='.$client_contact, $amocrm_log_file, 'REG_CALL '.$LogLineId);
-	 }
+    	 $parameters=array("id"=>$client_contact);
+    	 $updated_fields=array("linked_leads_id"=>array( intVal($lead_id) ));
+    	 
+    	 $error_status=false;
+    	 $update_result=update_contact_info($parameters, $updated_fields, $http_requester, null, null, null, null, null, $error_status);
+    	 
+    	 if( $error_status===true ) {
+    	     write_log('update_contact_info failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+    	     exit;
+    	 }
+    	 
+    	 if( $update_result===false ) {
+    	    write_log('Lead is not attached to contact, lead_id='.$lead_id.', contact_id='.$client_contact, $amocrm_log_file, 'REG_CALL '.$LogLineId);
+    	 }
 	 
       }
    
@@ -573,7 +658,15 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
     $name.='от '.$current_time_string;
 
-    $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $fields, $http_requester);     
+    $error_status=false;
+    $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $fields, $http_requester,
+                               null, null, null, null, null, $error_status);
+    
+    if( $error_status===true ) {
+        write_log('create_lead failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+        return($result);
+    }
+    
     if( $return_result!==false ) {
 
        $decoded_result=json_decode($return_result, true);
@@ -752,11 +845,27 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
             
     
     if( !is_null($client_contact_name) ) {
-       $name.=strval($client_contact_name).' ';
+        
+       if( $MissedCall==='1' ) $name.='(контакт: ';
+       
+       $name.=strval($client_contact_name);
+       
+       if( $MissedCall==='1' ) $name.=')';
+       
+       $name.=' ';
+       
        $contact_name.=$client_contact_name.' ';                
     }
     elseif( !is_null($client_company_name) ) {
-       $name.=strval($client_company_name).' ';
+        
+       if( $MissedCall==='1' ) $name.='(компания: ';
+        
+       $name.=strval($client_company_name);
+       
+       if( $MissedCall==='1' ) $name.=')';
+       
+       $name.=' ';
+       
        $contact_name.=$client_company_name;             
     }
     
@@ -788,12 +897,20 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     if( strlen($phone_to_with_name)===0 ) $phone_to_with_name='---';
     if( strlen($phone_from_with_name)===0 ) $phone_from_with_name='---';
     
+    $error_status=false;
     $return_result=create_unsorted($name, $status_accepted_for_work_pipeline_id,
                                    $phone_from_with_name,  $phone_to_with_name,
                                    $contact_name, $client_company,
                                    '', $outcoming,
-                                   $fields, $http_requester);
+                                   $fields, $http_requester,
+                                   null, null,
+                                   null, null,
+                                   null, $error_status);
        
+    if( $error_status===true ) {
+        write_log('create_unsorted failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+        return($result);
+    }
     
     if( $return_result!==false ) {
 
