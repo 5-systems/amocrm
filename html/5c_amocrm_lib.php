@@ -316,7 +316,12 @@
     }
     
     $user_id=0;
-    if( isset($this->custom_field_user_phone)
+    if( isset($this->user_id)
+        && is_numeric($this->user_id)
+        && intVal($this->user_id)>0 ) $user_id=intVal($this->user_id);
+    
+    if( $user_id===0
+        && isset($this->custom_field_user_phone)
         && isset($this->custom_field_user_amo_crm)
         && isset($this->user_phone)
         && strlen($this->user_phone)>0 ) {
