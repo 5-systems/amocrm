@@ -469,6 +469,9 @@
       
     }
     
+    // All stages are passed
+    $result=true;
+    
     return($result);
 
   } // end function register_call   
