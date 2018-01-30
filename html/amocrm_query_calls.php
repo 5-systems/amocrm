@@ -3,8 +3,22 @@
    require_once('5c_std_lib.php');
    require_once('5c_files_lib.php');
    require_once('5c_database_lib.php');
-   require_once('amocrm_settings.php');
 
+   $settigs_found=false;
+   if( isset($_REQUEST['param_login'])
+       && strlen($_REQUEST['param_login'])>0 ) {
+           
+       $settings_file_path='amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+       if( file_exists($settings_file_path) ) {
+           require_once($settings_file_path);
+           $settigs_found=true;
+       }
+   }
+   
+   if( $settigs_found===false ) {
+       require_once('amocrm_settings.php');
+   }
+   
    date_default_timezone_set('Etc/GMT-3');    
    
    $result='';
@@ -161,15 +175,18 @@
        $min_time_from_last_lock_sec=0;
        if( $amocrm_sleep_time_after_request_microsec>0 ) $min_time_from_last_lock_sec=$amocrm_sleep_time_after_request_microsec/1000000;
        
+       $queue_lock='';
+       if( isset($amocrm_account) ) $queue_lock=strVal($amocrm_account);
+       
        $db_conn=new mysqli($amocrm_database_host, $amocrm_database_user, $amocrm_database_password, $amocrm_database_name);
        
        $lock_status=false;
        if( isset($db_conn) ) {
-           $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec);
+           $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec, $queue_lock);
            
            if( $lock_status===true ) {
                
-               unlock_database($db_conn, '');
+               unlock_database($db_conn, '', $queue_lock);
                
                // remove record
                if( !is_null($selected_uniqueid)

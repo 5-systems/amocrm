@@ -5,15 +5,30 @@
    error_reporting(0);
    ini_set('display_errors', 0);
    
-   if( count($_REQUEST)===0
-       && count($argv)>1 ) {
-
-       $_REQUEST['CallerNumber']=$argv[1];
+   if( count($_REQUEST)===0 ) {
+       
+       if( count($argv)>1 ) $_REQUEST['CallerNumber']=$argv[1];
+       if( count($argv)>2 ) $_REQUEST['param_login']=$argv[2];
+       
    }
-
+   
    @$CallerNumber=$_REQUEST['CallerNumber'];
    
-   require_once('amocrm_settings.php');
+   $settigs_found=false;
+   if( isset($_REQUEST['param_login'])
+       && strlen($_REQUEST['param_login'])>0 ) {
+           
+       $settings_file_path='amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+       if( file_exists($settings_file_path) ) {
+           require_once($settings_file_path);
+           $settigs_found=true;
+       }
+   }
+       
+   if( $settigs_found===false ) {
+       require_once('amocrm_settings.php');
+   }
+       
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
   
