@@ -1473,6 +1473,8 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
 
    global $custom_field_address_type;
    global $custom_field_first_called_number;
+   global $custom_field_comment;
+   global $custom_field_web_site;
 		    
    $result=false;
 
@@ -1534,6 +1536,36 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
                )
            );
                
+        }
+        
+        if( isset($custom_field_comment)
+           && strVal($key)===strVal($custom_field_comment) ) {
+              
+           $parameters['request']['leads']['add'][0]['custom_fields'][]=
+           array(
+              'id'=>intval($key),
+              'values'=>array(
+                 array(
+                    'value'=>strval($value['value'])
+                 )
+              )
+           );
+           
+        }
+        
+        if( isset($custom_field_web_site)
+           && strVal($key)===strVal($custom_field_web_site) ) {
+              
+           $parameters['request']['leads']['add'][0]['custom_fields'][]=
+           array(
+              'id'=>intval($key),
+              'values'=>array(
+                 array(
+                    'value'=>strval($value['value'])
+                 )
+              )
+           );
+           
         }
           
    }
