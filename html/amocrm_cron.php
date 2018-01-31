@@ -1,6 +1,6 @@
 <?php
 
-   // version 30.01.2018
+   // version 31.01.2018
 
    require_once('5c_std_lib.php');  
    require_once('5c_files_lib.php');
@@ -11,7 +11,7 @@
 
    if( count($_REQUEST)===0 ) {
        
-       if( count($argv)>1 ) $_REQUEST['param_login']=$argv[1];
+      if( count($argv)>1 ) $_REQUEST['param_login']=$argv[1];
        
    }
    
@@ -19,7 +19,10 @@
    if( isset($_REQUEST['param_login'])
        && strlen($_REQUEST['param_login'])>0 ) {
            
-       $settings_file_path='amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+       $current_dir_path=getcwd();
+       $current_dir_path=rtrim($current_dir_path, '/').'/';
+       
+       $settings_file_path=$current_dir_path.'amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
        if( file_exists($settings_file_path) ) {
            require_once($settings_file_path);
            $settigs_found=true;

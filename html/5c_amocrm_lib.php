@@ -1,6 +1,6 @@
 <?php
 
-  // version 09.01.2018
+  // version 31.01.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -281,7 +281,7 @@
           }
       }
       
-      $add_value=array( array("name"=>($this->phone_prefix.$parsed_phone).' '.$this->name,
+      $add_value=array( array("name"=>$this->name.' '.($parsed_phone),
                               "responsible_user_id"=>$responsible_user_id,
                               "custom_fields"=>$custom_fields_value) );
       
@@ -1842,6 +1842,9 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
    global $custom_field_phone_enum;  
    global $custom_field_address_type;
    global $custom_field_first_called_number;
+   global $custom_field_comment;
+   global $custom_field_web_site;
+   
 		    
    $result=false;
 
@@ -1932,7 +1935,37 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
                 );
                 
         }
-       
+        
+        if( isset($custom_field_comment)
+            && strVal($key)===strVal($custom_field_comment) ) {
+                
+            $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields'][]=
+            array(
+                'id'=>intval($key),
+                'values'=>array(
+                    array(
+                        'value'=>strval($value['value'])
+                    )
+                )
+            );
+            
+        }
+        
+        if( isset($custom_field_web_site)
+            && strVal($key)===strVal($custom_field_web_site) ) {
+                
+                $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields'][]=
+                array(
+                    'id'=>intval($key),
+                    'values'=>array(
+                        array(
+                            'value'=>strval($value['value'])
+                        )
+                    )
+                );
+                
+        }
+   
    
    }
    

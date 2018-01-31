@@ -8,7 +8,10 @@
    if( isset($_REQUEST['param_login'])
        && strlen($_REQUEST['param_login'])>0 ) {
            
-       $settings_file_path='amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+       $current_dir_path=getcwd();
+       $current_dir_path=rtrim($current_dir_path, '/').'/';
+       
+       $settings_file_path=$current_dir_path.'amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
        if( file_exists($settings_file_path) ) {
            require_once($settings_file_path);
            $settigs_found=true;
@@ -165,9 +168,7 @@
    }
   
    if( count($result_row_array)>0 ) {
-       
-       write_log('Result='.$result, $amocrm_log_file, 'QUERY');
-       
+              
        // try lock amocrm
        $lock_priority=-5;
        if( $missed_call===true ) $lock_priority=10;
@@ -185,6 +186,8 @@
            $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.01, 10, $lock_priority, 1, $min_time_from_last_lock_sec, $queue_lock);
            
            if( $lock_status===true ) {
+
+               write_log('Result='.$result, $amocrm_log_file, 'QUERY');
                
                unlock_database($db_conn, '', $queue_lock);
                

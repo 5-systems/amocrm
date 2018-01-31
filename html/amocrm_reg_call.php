@@ -16,7 +16,9 @@
    @$Account=$_REQUEST['Account'];
    @$login=$_REQUEST['param_login'];
    @$password=$_REQUEST['param_password'];
-
+   @$Comment=$_REQUEST['Comment'];
+   @$WebPage=$_REQUEST['WebPage'];
+   
    
    if( !isset($login) ) $login='';
    if( !isset($password) ) $password='';
@@ -24,15 +26,19 @@
    if(!isset($MissedCall)) $MissedCall='0';
    if(!isset($OutcomingCall)) $OutcommingCall='0';
    if(!isset($Link)) $Link='';
-   if(!isset($FirstCalledNumber)) $FirstCalledNumber='';
+   if(!isset($Comment)) $Comment='';
+   if(!isset($WebPage)) $WebPage='';
    
    $LogLineId=$CallId;
    
    $settigs_found=false;
    if( isset($_REQUEST['param_login'])
        && strlen($_REQUEST['param_login'])>0 ) {
-           
-       $settings_file_path='amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+       
+       $current_dir_path=getcwd();
+       $current_dir_path=rtrim($current_dir_path, '/').'/';
+       
+       $settings_file_path=$current_dir_path.'amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
        if( file_exists($settings_file_path) ) {
            require_once($settings_file_path);
            $settigs_found=true;
@@ -383,6 +389,14 @@
    $unsorted_id=null;
    
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
+   $client_phone=($OutcomingCall==='1' ? $CalledNumber: $CallerNumber);
+   
+   $client_web_request='Комментарий: '.strVal($Comment).' ';
+   $client_web_request.='Имя: '.strVal($ContactInfo).' ';
+   $client_web_request.='Телефон: '.strVal($client_phone);
+   
+   $client_web_site=strVal($WebPage);
+   
    if( is_null($lead_id)
        && $create_lead===true ) {
        
@@ -393,7 +407,8 @@
                                      $client_contact_name, $client_company,
                                      $client_company_name, $amocrm_log_file,
                                      $OutcomingCall, $parsed_client_phone,
-                                     $MissedCall, $FromWeb, $FirstCalledNumber);
+                                     $MissedCall, $FromWeb, $FirstCalledNumber,
+                                     $client_web_request, $client_web_site);
           
           if( strlen($lead_id)>0 ) {
               $lead_created=true;
@@ -415,7 +430,9 @@
                                              $user_id, $client_contact,
                                              $client_contact_name, $client_company,
                                              $client_company_name, $amocrm_log_file,
-                                             $OutcomingCall, $MissedCall, $FromWeb, $FirstCalledNumber);
+                                             $OutcomingCall, $MissedCall, $FromWeb,
+                                             $FirstCalledNumber, $client_web_request,
+                                             $client_web_site, $ContactInfo);
 
           
           if( strlen($unsorted_id)>0 ) {
@@ -561,7 +578,8 @@ function set_parameter($parameter, $value, $template) {
 
 function create_lead_local($http_requester, $user_id, $client_contact_name,
                            $client_company, $client_company_name, $amocrm_log_file,
-                           $OutcomingCall, $client_phone, $MissedCall, $FromWeb, $FirstCalledNumber) {
+                           $OutcomingCall, $client_phone, $MissedCall, $FromWeb,
+                           $FirstCalledNumber, $Comment, $WebSite) {
 
     global $LogLineId;
                                
@@ -576,6 +594,8 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
     global $custom_field_address_type_value_outcoming_call;
     global $custom_field_address_type_value_string_outcoming_call;
     global $custom_field_first_called_number;
+    global $custom_field_comment;
+    global $custom_field_web_site;
     
     $result='';
     
@@ -648,6 +668,30 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
             'value_string'=>strVal($FirstCalledNumber)
         );
     }
+    
+    if( isset($custom_field_comment)
+        && is_numeric($custom_field_comment)
+        && strlen($Comment)>0 ) {
+            
+        $fields[intVal($custom_field_comment)]=
+        array(
+            'value'=>strVal($Comment),
+            'value_string'=>strVal($Comment)
+        );
+        
+    }
+    
+    if( isset($custom_field_web_site)
+        && is_numeric($custom_field_web_site)
+        && strlen($WebSite)>0 ) {
+            
+        $fields[intVal($custom_field_web_site)]=
+        array(
+            'value'=>strVal($WebSite),
+            'value_string'=>strVal($WebSite)
+        );
+            
+    }
    
     if( !is_null($client_contact_name) ) {
        $name.=strval($client_contact_name).' ';     
@@ -701,7 +745,7 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
 function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id,  $client_contact, $client_contact_name,
                                $client_company, $client_company_name, $amocrm_log_file, $OutcomingCall, $MissedCall,
-                               $FromWeb, $FirstCalledNumber) {
+                               $FromWeb, $FirstCalledNumber, $Comment, $WebSite, $ContactInfo) {
 
     global $LogLineId;
                                    
@@ -718,6 +762,8 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     global $custom_field_address_type_value_outcoming_call;
     global $custom_field_address_type_value_string_outcoming_call;
     global $custom_field_first_called_number;
+    global $custom_field_comment;
+    global $custom_field_web_site;
     
     $result='';
        
@@ -847,15 +893,51 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
                 'value_string'=>strVal($FirstCalledNumber)
             );
     }
+    
+    if( isset($custom_field_comment)
+        && is_numeric($custom_field_comment)
+        && strlen($Comment)>0 ) {
+            
+        $fields[intVal($custom_field_comment)]=
+        array(
+            'value'=>strVal($Comment),
+            'value_string'=>strVal($Comment)
+        );
+            
+    }
+    
+    if( isset($custom_field_comment)
+        && is_numeric($custom_field_comment)
+        && strlen($Comment)>0 ) {
+            
+        $fields[intVal($custom_field_comment)]=
+        array(
+            'value'=>strVal($Comment),
+            'value_string'=>strVal($Comment)
+        );
+            
+    }
+    
+    if( isset($custom_field_web_site)
+        && is_numeric($custom_field_web_site)
+        && strlen($WebSite)>0 ) {
+            
+        $fields[intVal($custom_field_web_site)]=
+        array(
+            'value'=>strVal($WebSite),
+            'value_string'=>strVal($WebSite)
+        );
+        
+    }
             
     
     if( !is_null($client_contact_name) ) {
         
-       if( $MissedCall==='1' ) $name.='(контакт: ';
+       if( $MissedCall==='1' || $FromWeb==='1' ) $name.='(контакт: ';
        
        $name.=strval($client_contact_name);
        
-       if( $MissedCall==='1' ) $name.=')';
+       if( $MissedCall==='1' || $FromWeb==='1' ) $name.=')';
        
        $name.=' ';
        
@@ -863,11 +945,11 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     }
     elseif( !is_null($client_company_name) ) {
         
-       if( $MissedCall==='1' ) $name.='(компания: ';
+       if( $MissedCall==='1' || $FromWeb==='1' ) $name.='(компания: ';
         
        $name.=strval($client_company_name);
        
-       if( $MissedCall==='1' ) $name.=')';
+       if( $MissedCall==='1' || $FromWeb==='1' ) $name.=')';
        
        $name.=' ';
        
@@ -877,8 +959,11 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     $name_numeric=remove_symbols($name);
     if( strlen($name_numeric)<10 ) $name.=$client_phone.' ';
     
+    if( $FromWeb==='1'
+        && strlen($ContactInfo)>0 ) $contact_name.=strVal($ContactInfo).' ';
+    
     $contact_name_numeric=remove_symbols($contact_name);
-    if( strlen($contact_name_numeric)<10 ) $contact_name.=$client_phone.' ';
+    if( strlen($contact_name_numeric)<10 ) $contact_name.=remove_symbols($client_phone).' ';
 
     $current_time_string=date('d.m.Y H:i');
 

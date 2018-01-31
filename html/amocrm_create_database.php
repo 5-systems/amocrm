@@ -1,8 +1,31 @@
 <?php
+
+   date_default_timezone_set('Etc/GMT-3'); 
    
-   require_once('amocrm_settings.php');
+   if( count($_REQUEST)===0 ) {
+     
+      if( count($argv)>1 ) $_REQUEST['param_login']=$argv[1];
+     
+   }
    
-   date_default_timezone_set('Etc/GMT-3');      
+   $settigs_found=false;
+   if( isset($_REQUEST['param_login'])
+     && strlen($_REQUEST['param_login'])>0 ) {
+     
+      $current_dir_path=getcwd();
+      $current_dir_path=rtrim($current_dir_path, '/').'/';
+      
+      $settings_file_path=$current_dir_path.'amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+      if( file_exists($settings_file_path) ) {
+         require_once($settings_file_path);
+         $settigs_found=true;
+      }
+   }
+   
+   if( $settigs_found===false ) {
+      require_once('amocrm_settings.php');
+   }
+  
    
    $db_host=$amocrm_database_host;
    
@@ -15,7 +38,7 @@
    $query_text="";      
    $query_text.="create database &amocrm_database_name&;";
    $query_text=set_parameter('amocrm_database_name', $amocrm_database_name, $query_text);      
-   //echo $query_text.PHP_EOL;
+
    $db_status=$db_conn->query($query_text);
    if( $db_status===false ) {
       exit('Cannot create database: '.$db_conn->error);  

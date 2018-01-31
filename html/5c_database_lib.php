@@ -1,6 +1,6 @@
 <?php
 
-  // version 09.01.2018
+  // version 31.01.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -52,7 +52,7 @@ function mysql_delete_rows($db_conn, $database_name, $table, $select_condition, 
 
 function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                         $time_interval_between_lock_tries_sec=0.1, $max_wait_time_for_lock_sec=10, $priority=0,
-                        $max_number_cycles=1000, $lock_time_shift=0.0, $queue_name='') {
+                        $max_number_cycles=1000, $lock_time_shift=0.0, $queue_name='', $max_queue_size=200) {
         
         $result=false;
         
@@ -74,11 +74,42 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             }
             
         }
-        
+
         $start_time=microtime(true);
         if( $write_log_messages===true ) {
-            write_log('lock_amocrm_database: start '.strVal($start_time), $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+           write_log('lock_amocrm_database: start '.strVal($start_time), $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
         }
+        
+        $query_text_select_total_quantity_from_queue="select COUNT(*) as num from &table_name& where queue_name='&queue_name&'";
+        $query_text_select_total_quantity_from_queue=template_set_parameter('table_name', 'queue', $query_text_select_total_quantity_from_queue);
+        $query_text_select_total_quantity_from_queue=template_set_parameter('queue_name', $queue_name, $query_text_select_total_quantity_from_queue);
+        
+        $query_result=$db_conn->query($query_text_select_total_quantity_from_queue);        
+        if( $query_result!==false ) {
+           
+           $row = $query_result->fetch_assoc();
+           if( is_array($row)
+              && array_key_exists('num', $row)
+              && intVal($row['num'])>$max_queue_size ) {
+                 
+                 if( $write_log_messages===true ) {
+                    write_log('lock_amocrm_database: number of queue members exceeds maximum ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+                 }
+                 
+                 return($result);
+              }
+              
+        }
+        else {
+           
+           if( $write_log_messages===true ) {
+              write_log('lock_amocrm_database: error in reading queue members ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+           }
+           
+           return($result);          
+        }
+        
+        $start_time=microtime(true);
         
         $query_text_enter_queue="insert into &table_name& (queue_name, pid, time, priority) values('&queue_name&', &pid&, &time&, &priority&)";
         $query_text_enter_queue=template_set_parameter('table_name', 'queue', $query_text_enter_queue);
@@ -97,7 +128,7 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
             
             return($result);
         }
-        
+                
         $query_text_select_from_queue="select COUNT(*) as num from ";
         $query_text_select_from_queue.=" (select pid, time from &table_name& where queue_name='&queue_name&' order by priority asc, time asc limit 1) as common";
         $query_text_select_from_queue.=" where common.pid=&pid& and common.time=&time& ";
