@@ -18,8 +18,8 @@
    @$password=$_REQUEST['param_password'];
    @$Comment=$_REQUEST['Comment'];
    @$WebPage=$_REQUEST['WebPage'];
-   
-   
+
+
    if( !isset($login) ) $login='';
    if( !isset($password) ) $password='';
    if(!isset($CalledNumber)) $CalledNumber='';
