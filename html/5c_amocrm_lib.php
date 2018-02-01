@@ -686,7 +686,9 @@ class amocrm_http_requester {
     }
     
     if( $lock_status===true ) {
-        $return_result=amocrm_request('POST', $url, $parameters, $this->log_file, $this->coockie_file, $this->header);
+        
+        $auth_header='Content-Type: multipart/form-data';
+        $return_result=amocrm_request('POST', $url, $parameters, $this->log_file, $this->coockie_file, $auth_header);
         
         if( $without_lock===false
             && isset($db_conn) ) {
@@ -2078,5 +2080,105 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
 }
 
 
+function create_note($type=null, $lead_id=null, $contact_id=null, $company_id=null,  $text=null,
+   $created_user_id=null, $responsable_user_id=null, $fields=array(), $amocrm_http_requester=null,
+   $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+      
+   $http_requester=null;
+   if( is_null($amocrm_http_requester) ) {
+      $http_requester=new amocrm_http_requester;
+      $http_requester->{'USER_LOGIN'}=$user_login;
+      $http_requester->{'USER_HASH'}=$user_hash;
+      $http_requester->{'amocrm_account'}=$amocrm_account;
+      $http_requester->{'coockie_file'}=$coockie_file;
+      $http_requester->{'log_file'}=$log_file;
+   }
+   else {
+      $http_requester=$amocrm_http_requester;
+   }
+   
+   $current_date=time();
+   
+   $element_type=0;
+   $element_id=0;
+   if( is_numeric($lead_id)
+      && intVal($lead_id)>0 ) {
+         
+      $element_type=2;
+      $element_id=intVal($lead_id);
+   }
+   elseif( is_numeric($contact_id)
+      && intVal($contact_id)>0 ) {
+         
+         $element_type=1;
+         $element_id=intVal($contact_id);
+   }
+   elseif( is_numeric($company_id)
+      && intVal($company_id)>0) {
+         
+         $element_type=3;
+         $element_id=intVal($company_id);
+   }
+      
+   $note_type=4;
+   if( is_numeric($type)
+      && intVal($type)>0 ) $note_type=intVal($type);
+      
+   $date_create=$current_date;
+   
+   $note_created_user_id=0;
+   if( is_numeric($created_user_id)
+      && intVal($created_user_id)>0 ) $note_created_user_id=$created_user_id;
+      
+   $note_responsable_user_id=0;
+   if( is_numeric($responsable_user_id)
+      && intVal($responsable_user_id)>0 ) $note_responsable_user_id=$responsable_user_id;
+      
+   $note_text='';
+   if( is_string($text) ) $note_text=$text;
+   
+   $notes['request']['notes']['add']=array(
+      array(
+         'element_type'=>$element_type,
+         'element_id'=>$element_id,
+         'note_type'=>$note_type,
+         
+         'date_create'=>$date_create,
+         'last_modified'=>$date_create,
+         'request_id'=>0,
+         'created_user_id'=>$note_created_user_id,
+         'responsable_user_id'=>$note_responsable_user_id,
+         'text'=>$note_text
+      )
+   );
+   
+   if( is_array($fields) ) {
+      
+      reset($fields);
+      while( list($key, $value)=each($fields) ) {
+         $notes['request']['notes']['add'][0][strVal($key)]=$value;
+      }
+      
+   }
+   
+   
+   $parameters_json=json_encode($notes);
+   
+   $http_requester->{'send_method'}='POST';
+   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/notes/set';
+   $http_requester->{'parameters'}=$parameters_json;
+   $http_requester->{'header'}=array('Content-Type: application/json');
+   
+   $return_result=false;
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
+   $http_requester->{'header'}='';
+   
+   $result=$return_result;
+   
+   return($result);
+}
 
 ?>
