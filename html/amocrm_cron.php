@@ -182,18 +182,39 @@
               && is_string($value['text'])
               && strlen($value['text'])>0 ) {
               
+              if( intVal($value['date_create'])>=$date_create_note_from
+                  && intVal($value['date_create'])<=$date_create_note_to ) {
+                     
+                 $value['set_duration']=true;                     
+              }
+              else {
+                 $value['set_duration']=false;
+              }
+                 
+              $note_is_selected=false;   
               $text_array=json_decode($value['text'], true);
-              if( is_array($text_array)
-        	      && (array_key_exists('DURATION', $text_array) 
-        	          && strVal($text_array['DURATION'])==='0'
-        	          || array_key_exists('LINK', $text_array)
-        	          && strlen($text_array['LINK'])===0)
-        	      && intVal($value['date_create'])>=$date_create_note_from
-        	      && intVal($value['date_create'])<=$date_create_note_to ) {
+              if( $note_is_selected===false
+                  && is_array($text_array)
+        	         && array_key_exists('DURATION', $text_array) 
+        	         && strVal($text_array['DURATION'])==='0'
+        	         && intVal($value['date_create'])>=$date_create_note_from
+        	         && intVal($value['date_create'])<=$date_create_note_to ) {
               
-        	    $value['text_array']=$text_array;
-        	    $selected_notes_array[]=$value;
-        	  }
+           	     $value['text_array']=$text_array;
+           	     $selected_notes_array[]=$value;
+           	     $note_is_selected=true;
+           	  }
+           	  
+           	  if( $note_is_selected===false
+           	      && is_array($text_array)
+           	      && array_key_exists('LINK', $text_array)
+           	      && strlen($text_array['LINK'])===0
+           	      && intVal($value['date_create'])>=$date_create_note_from ) {
+           	        
+        	        $value['text_array']=$text_array;
+        	        $selected_notes_array[]=$value;
+        	        $note_is_selected=true;
+           	  }           	  
     	  
           }    
        }
@@ -243,7 +264,7 @@
               
               $_full_record_path=$_dir_records.$_short_record_path;
 
-	      write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+   	        write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
           }
           elseif( strlen($_dir_records)>0
                   && strlen($_uniqueid_record)>=10
@@ -309,6 +330,8 @@
           }
           
           if( is_array($value)
+              && array_key_exists('set_duration', $value)
+              && $value['set_duration']===true
               && array_key_exists('text_array', $value)
               && is_array($value['text_array'])
               && array_key_exists('DURATION', $value['text_array'])
@@ -375,7 +398,6 @@
                    
                $update_records[]=$value;
            }
-           
            
            
        }

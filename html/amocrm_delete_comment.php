@@ -48,6 +48,7 @@
   $http_requester->{'amocrm_account'}=$amocrm_account;
   $http_requester->{'coockie_file'}=$amocrm_coockie_file;
   $http_requester->{'log_file'}=$amocrm_log_file;
+  $http_requester->{'max_number_request_cycles'}=101;
   
   if( isset($amocrm_sleep_time_after_request_microsec)
       && is_numeric($amocrm_sleep_time_after_request_microsec)
@@ -136,12 +137,6 @@
      
   }   
         
-  if( count($companies_array)===0 ) {         
-     $result_array['error']='Компания не найдена';
-     $result=json_encode($result_array);
-     write_log($result, $amocrm_log_file, 'DELETE NOTE');
-     exit($result);
-  }
   
   if( count($companies_array)>1 ) {
      $result_array['error']='Найдено несколько компаний:';

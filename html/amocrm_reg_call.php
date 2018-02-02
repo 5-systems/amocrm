@@ -19,9 +19,9 @@
    @$Comment=$_REQUEST['Comment'];
    @$WebPage=$_REQUEST['WebPage'];
 
-
-   if( !isset($login) ) $login='';
-   if( !isset($password) ) $password='';
+   
+   if(!isset($login)) $login='';
+   if(!isset($password)) $password='';
    if(!isset($CalledNumber)) $CalledNumber='';
    if(!isset($MissedCall)) $MissedCall='0';
    if(!isset($OutcomingCall)) $OutcommingCall='0';
@@ -73,6 +73,8 @@
    // Get user_id and user_name
    $user_id='';
    $user_name='';
+   $user_pipeline_id='';
+   $user_pipeline_status_id='';
    
    $http_requester=new amocrm_http_requester;
    $http_requester->{'USER_LOGIN'}=$amocrm_USER_LOGIN;
@@ -111,7 +113,9 @@
       
       if( is_array($user_info) ) {
     	  if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
-    	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];      
+    	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];
+    	  if( array_key_exists('pipeline_id', $user_info) && is_numeric($user_info['pipeline_id']) ) $user_pipeline_id=$user_info['pipeline_id'];
+    	  if( array_key_exists('name', $user_info) && is_numeric($user_info['pipeline_status_id']) ) $user_pipeline_status_id=$user_info['pipeline_status_id'];
       }
    }
 
@@ -408,7 +412,7 @@
                                      $client_company_name, $amocrm_log_file,
                                      $OutcomingCall, $parsed_client_phone,
                                      $MissedCall, $FromWeb, $FirstCalledNumber,
-                                     $client_web_request, $client_web_site);
+                                     $client_web_request, $client_web_site, $user_pipeline_status_id);
           
           if( strlen($lead_id)>0 ) {
               $lead_created=true;
@@ -432,7 +436,7 @@
                                              $client_company_name, $amocrm_log_file,
                                              $OutcomingCall, $MissedCall, $FromWeb,
                                              $FirstCalledNumber, $client_web_request,
-                                             $client_web_site, $ContactInfo);
+                                             $client_web_site, $ContactInfo, $user_pipeline_id);
 
           
           if( strlen($unsorted_id)>0 ) {
@@ -579,7 +583,7 @@ function set_parameter($parameter, $value, $template) {
 function create_lead_local($http_requester, $user_id, $client_contact_name,
                            $client_company, $client_company_name, $amocrm_log_file,
                            $OutcomingCall, $client_phone, $MissedCall, $FromWeb,
-                           $FirstCalledNumber, $Comment, $WebSite) {
+                           $FirstCalledNumber, $Comment, $WebSite, $user_pipeline_status_id) {
 
     global $LogLineId;
                                
@@ -707,8 +711,12 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
     $name.='от '.$current_time_string;
 
+    $lead_pipeline_status=strVal($status_accepted_for_work);
+    if( is_numeric($user_pipeline_status_id) ) $lead_pipeline_status=strVal($user_pipeline_status_id);
+    
+    
     $error_status=false;
-    $return_result=create_lead($name, $status_accepted_for_work, $user_id, $client_company, $fields, $http_requester,
+    $return_result=create_lead($name, $lead_pipeline_status, $user_id, $client_company, $fields, $http_requester,
                                null, null, null, null, null, $error_status);
     
     if( $error_status===true ) {
@@ -745,7 +753,7 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
 function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id,  $client_contact, $client_contact_name,
                                $client_company, $client_company_name, $amocrm_log_file, $OutcomingCall, $MissedCall,
-                               $FromWeb, $FirstCalledNumber, $Comment, $WebSite, $ContactInfo) {
+                               $FromWeb, $FirstCalledNumber, $Comment, $WebSite, $ContactInfo, $user_pipeline_id) {
 
     global $LogLineId;
                                    
@@ -987,8 +995,14 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     if( strlen($phone_to_with_name)===0 ) $phone_to_with_name='---';
     if( strlen($phone_from_with_name)===0 ) $phone_from_with_name='---';
     
+    $unsorted_pipeline_id=strVal($status_accepted_for_work_pipeline_id);
+    if( is_numeric($user_pipeline_id) ) {
+       $unsorted_pipeline_id=$user_pipeline_id;
+    }
+    
+    
     $error_status=false;
-    $return_result=create_unsorted($name, $status_accepted_for_work_pipeline_id,
+    $return_result=create_unsorted($name, $unsorted_pipeline_id,
                                    $phone_from_with_name,  $phone_to_with_name,
                                    $contact_name, $client_company,
                                    '', $outcoming,

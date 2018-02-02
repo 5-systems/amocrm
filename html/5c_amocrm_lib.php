@@ -1064,7 +1064,9 @@ function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_f
 function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $amocrm_http_requester=null,
                                      $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
 
-   
+   global $custom_field_user_pipeline_id;
+   global $custom_field_user_pipeline_status_id;  
+                                        
    $result=array();
 
    if( strlen($user_phone)>=3 ) {
@@ -1148,21 +1150,58 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
     	    while( list($key, $value)=each($custom_fields) ) {
     	       
     	       if( is_array($value)
-    		  && isset($value['id'])
-    		  && $value['id']!==$custom_field_user_amo_crm ) continue; 
-    
-    	       $values_array=$value['values'];	  
+          		  && isset($value['id'])
+          		  && strVal($value['id'])===strVal($custom_field_user_amo_crm) ) { 
+          
+       	       $values_array=$value['values'];
+       	       
+       	       if( is_array($values_array)
+             		  && count($values_array)>0
+             		  && isset($values_array[0]['value']) ) {
+       	       
+             		  $user_id=$values_array[0]['value'];
+             		  $result["user_id"]=strVal($user_id);  
+       	       }       	       
     	       
-    	       if( is_array($values_array)
-    		  && count($values_array)>0
-    		  && isset($values_array[0]['value']) ) {
-    	       
-    		  $user_id=$values_array[0]['value'];
-    		  $result["user_id"]=strVal($user_id);
-    		  break;	    
+          	 }
+          	 
+          	 if( is_array($value)
+          	    && isset($value['id'])
+          	    && isset($custom_field_user_pipeline_id)
+          	    && strVal($value['id'])===strVal($custom_field_user_pipeline_id) ) {
+          	       
+       	       $values_array=$value['values'];
+       	       
+       	       if( is_array($values_array)
+       	          && count($values_array)>0
+       	          && isset($values_array[0]['value']) ) {
+       	             
+    	             $pipeline_id=$values_array[0]['value'];
+    	             $result["pipeline_id"]=strVal($pipeline_id);
+    	          }
+       	          
+       	    }
+       	    
+       	    if( is_array($value)
+       	       && isset($value['id'])
+       	       && isset($custom_field_user_pipeline_status_id)
+       	       && strVal($value['id'])===strVal($custom_field_user_pipeline_status_id) ) {
+       	          
+    	          $values_array=$value['values'];
+    	          
+    	          if( is_array($values_array)
+    	             && count($values_array)>0
+    	             && isset($values_array[0]['value']) ) {
+    	                
+    	             $pipeline_status_id=$values_array[0]['value'];
+    	             $result["pipeline_status_id"]=strVal($pipeline_status_id);
+ 	             }
+ 	             
     	       }
+       	    
+       	    
     		  
-    	    } 
+      	 } 
     			   
     	 } // search for user_id
     	 
