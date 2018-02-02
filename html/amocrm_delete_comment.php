@@ -13,6 +13,8 @@
   @$start_date=$_REQUEST['start_date'];
   @$finish_date=$_REQUEST['finish_date'];
   @$company_number=$_REQUEST['company_number'];
+  @$company_name=$_REQUEST['company_name'];
+
   
   write_log('blank_line', $amocrm_log_file, 'DELETE NOTE');
   write_log($_REQUEST, $amocrm_log_file, 'DELETE NOTE');  
@@ -70,7 +72,13 @@
   
      $parameters=array();
      $parameters['type']='company';
-     $parameters['query']=strVal($company_number);
+     
+     if( strlen($company_number)>=3 ) {
+        $parameters['query']=strVal($company_number);
+     }
+     elseif( strlen($company_name)>=3 ) {
+        $parameters['query']=strVal($company_name);
+     }
      
      $http_requester->{'send_method'}='GET';
      $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
@@ -128,9 +136,7 @@
      
   }   
         
-  if( strlen($company_number)>0
-      && count($companies_array)===0 ) {
-         
+  if( count($companies_array)===0 ) {         
      $result_array['error']='Компания не найдена';
      $result=json_encode($result_array);
      write_log($result, $amocrm_log_file, 'DELETE NOTE');

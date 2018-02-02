@@ -12,8 +12,10 @@
 
   @$date=$_REQUEST['date'];
   @$company_number=$_REQUEST['company_number'];
+  @$company_name=$_REQUEST['company_name'];
   @$user_id=$_REQUEST['user_id'];
   @$text=$_REQUEST['text'];
+  
   
   write_log('blank_line', $amocrm_log_file, 'CREATE NOTE');
   write_log($_REQUEST, $amocrm_log_file, 'CREATE NOTE');  
@@ -37,11 +39,11 @@
      exit($result);
   }
   
+  if( !is_string($company_name) ) $company_name='';
+ 
   if( !is_numeric($user_id) ) $user_id=0;
   
   if( !is_string($text) ) $text='';
-  
-
   
   $http_requester=new amocrm_http_requester;
   $http_requester->{'USER_LOGIN'}=$amocrm_USER_LOGIN;
@@ -71,7 +73,13 @@
   
   $parameters=array();
   $parameters['type']='company';
-  $parameters['query']=strVal($company_number);
+  
+  if( strlen($company_number)>=3 ) {
+     $parameters['query']=strVal($company_number);    
+  }
+  elseif( strlen($company_name)>=3 ) {
+     $parameters['query']=strVal($company_name);
+  }
   
   $http_requester->{'send_method'}='GET';
   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
