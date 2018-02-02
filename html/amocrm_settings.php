@@ -61,6 +61,8 @@
   $status_accepted_for_work_pipeline_id='618805';  
   $status_successful_realization='142';
   $status_canceled='143';
+  $custom_field_user_pipeline_id='1783165';
+  $custom_field_user_pipeline_status_id='1783167';
 
   $phone_prefix_presentation='+7';
 
