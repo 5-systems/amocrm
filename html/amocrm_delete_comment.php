@@ -245,8 +245,10 @@
      $fields[intVal($value)]=array('text'=>'-');
   }
   
-  $update_status=update_notes_info($parameters, $fields, $http_requester,
-                                    null, null, null, null, null, $error_status);
+  if( count($notes_array)>0 ) {
+     $update_status=update_notes_info($parameters, $fields, $http_requester,
+                                       null, null, null, null, null, $error_status);
+  }
   
   $result_array=array();
   $result_array['result']=!$error_status;
