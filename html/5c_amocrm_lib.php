@@ -649,6 +649,8 @@ class amocrm_http_requester {
   public $request_status_code;
   public $lock_database_connection;
   public $lock_priority;
+  public $time_interval_between_lock_tries_sec;
+  public $max_wait_time_for_lock_sec;
   
   // class use
   public $connected;
@@ -660,6 +662,8 @@ class amocrm_http_requester {
       $this->max_number_rows=490;
       $this->max_number_request_cycles=21;
       $this->sleep_time_after_request_microsec=300000;
+      $this->time_interval_between_lock_tries_sec=0.1;
+      $this->max_wait_time_for_lock_sec=10;
   }
   
   public function connect($without_lock=false) {
@@ -682,7 +686,15 @@ class amocrm_http_requester {
     if( $without_lock===false
         && isset($db_conn) ) {
             
-        $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec, 0.1, 10, $lock_priority, 1000, 0.0, $this->amocrm_account);
+           $lock_status=lock_database($db_conn,
+                                      '',
+                                      $min_time_from_last_lock_sec,
+                                      $this->time_interval_between_lock_tries_sec,
+                                      $this->max_wait_time_for_lock_sec,
+                                      $lock_priority,
+                                      1000,
+                                      0.0,
+                                      $this->amocrm_account);
     }
     
     if( $lock_status===true ) {
@@ -1810,8 +1822,8 @@ function get_notes_info($parameters='', $amocrm_http_requester=null,
 
 
 function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http_requester=null,
-                            $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
-				   
+                           $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+      
    $result=false;
    
    // Request last modification
@@ -1833,76 +1845,104 @@ function update_notes_info($parameters='', $updated_fields=array(), $amocrm_http
    
    if( $error_status===true ) return($result);
    
+   $all_requests_result=false;
+   $max_number_elements_by_cycle=490;
    if( is_array($notes_info)
-       && count($notes_info)>0 ) {
+      && count($notes_info)>0 ) {
+         
+      $all_requests_result=true;
+      
+      $num_cycles=intVal(ceil( count($notes_info)/$max_number_elements_by_cycle ));
+      
+      $counter=0;
+      $cycle_counter=0;
+      $number_elements=count($notes_info);
       
       reset($notes_info);
       while( list($key, $value)=each($notes_info) ) {
-      
-    	 $note_data=array();
-    	 $note_data['id']=intVal($value['note_id']);
-    	 $note_data['element_id']=intVal($value['element_id']);
-    	 $note_data['element_type']=intVal($value['element_type']);
-    	 $note_data['created_user_id']=intVal($value['created_user_id']);
-    	 $note_data['responsible_user_id']=intVal($value['responsible_user_id']);
-    	 $note_data['text']=strVal($value['text']);
-    	 $note_data['last_modified']=intVal($value['last_modified']);
-              
-    	 $last_modified=0;
-    	 if( is_array($value)
-    	     && array_key_exists('last_modified', $value)
-    	     && is_numeric($value['last_modified'])
-    	     && intVal($value['last_modified'])>$last_modified ) $last_modified=intVal($value['last_modified']);
-    	 
-    	 if( $last_modified===0 ) $last_modified=time();
-    	 
-    	 $note_data['last_modified']=($last_modified+1);
-    	 
-    	 $note_id_numeric=intVal($value['note_id']);
-    	 reset($updated_fields);
-    	 if( array_key_exists($note_id_numeric, $updated_fields) ) {
-    	 
-    	    reset($updated_fields[$note_id_numeric]);
-    	    while( list($key_2, $value_2)=each($updated_fields[$note_id_numeric]) ) {
-    	       $note_data[$key_2]=$value_2;	    
-    	    }
-    	 
-    	 }
-    	 
-    	 $notes_update[]=$note_data;	 
+         
+         $counter+=1;
+         $cycle_counter+=1;
+         
+         $note_data=array();
+         $note_data['id']=intVal($value['note_id']);
+         $note_data['element_id']=intVal($value['element_id']);
+         $note_data['element_type']=intVal($value['element_type']);
+         $note_data['created_user_id']=intVal($value['created_user_id']);
+         $note_data['responsible_user_id']=intVal($value['responsible_user_id']);
+         $note_data['text']=strVal($value['text']);
+         $note_data['last_modified']=intVal($value['last_modified']);
+         
+         $last_modified=0;
+         if( is_array($value)
+            && array_key_exists('last_modified', $value)
+            && is_numeric($value['last_modified'])
+            && intVal($value['last_modified'])>$last_modified ) $last_modified=intVal($value['last_modified']);
+            
+            if( $last_modified===0 ) $last_modified=time();
+            
+            $note_data['last_modified']=($last_modified+1);
+            
+            $note_id_numeric=intVal($value['note_id']);
+            reset($updated_fields);
+            if( array_key_exists($note_id_numeric, $updated_fields) ) {
+               
+               reset($updated_fields[$note_id_numeric]);
+               while( list($key_2, $value_2)=each($updated_fields[$note_id_numeric]) ) {
+                  $note_data[$key_2]=$value_2;
+               }
+               
+            }
+            
+            $notes_update[]=$note_data;
+            if( $cycle_counter>=$max_number_elements_by_cycle
+               || $counter>=$number_elements ) {
+                  
+                  
+               // Update contact data
+               $cycle_result=false;
+               $request_parameters=array();
+               $request_parameters['request']['notes']['update']=$notes_update;
+               $request_parameters_json=json_encode($request_parameters);
+               
+               $http_requester->{'send_method'}='POST';
+               $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/notes/set';
+               $http_requester->{'parameters'}=$request_parameters_json;
+               
+               $return_result=$http_requester->request();
+               
+               if( $return_result===false ) $error_status=true;
+               
+               if( $return_result===false ) return($result);
+               
+               if( $return_result!==false ) {
+                  
+                  $decoded_result=json_decode($return_result, true);
+                  if( is_array($decoded_result)
+                     && array_key_exists('response', $decoded_result)
+                     && is_array($decoded_result['response'])
+                     && array_key_exists('notes', $decoded_result['response'])
+                     && is_array($decoded_result['response']['notes'])
+                     && count($decoded_result['response']['notes'])>0 ) {
+                        
+                        $cycle_result=true;
+                     }
+                     
+               }
+               
+               
+               $cycle_counter=0;
+               $notes_update=array();
+               $all_requests_result=( $all_requests_result && $cycle_result );
+            }
+               
       }
-      
+         
    }
    
-
-   // Update contact data
-   $request_parameters=array();
-   $request_parameters['request']['notes']['update']=$notes_update;   
-   $request_parameters_json=json_encode($request_parameters);
-
-   $http_requester->{'send_method'}='POST';
-   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/notes/set';
-   $http_requester->{'parameters'}=$request_parameters_json;
    
-   $return_result=$http_requester->request();
+   $result=$all_requests_result;
    
-   if( $return_result===false ) $error_status=true;
-   
-   if( $return_result!==false ) {
-   
-      $decoded_result=json_decode($return_result, true);
-      if( is_array($decoded_result)
-	  && array_key_exists('response', $decoded_result)
-          && is_array($decoded_result['response'])
-          && array_key_exists('notes', $decoded_result['response'])
-          && is_array($decoded_result['response']['notes'])
-          && count($decoded_result['response']['notes'])>0 ) {
-	 
-	      $result=true;	 
-      }
-      
-   }
-
    return($result);
 }
 

@@ -10,6 +10,15 @@
 //  error_reporting(E_ALL);
 //  ini_set('display_errors', 1);
 
+  if( count($_REQUEST)===0 ) {
+     
+     if( count($argv)>1 ) $_REQUEST['start_date']=$argv[1];
+     if( count($argv)>2 ) $_REQUEST['finish_date']=$argv[2];
+     if( count($argv)>3 ) $_REQUEST['company_number']=$argv[3];
+     if( count($argv)>4 ) $_REQUEST['company_name']=$argv[4];
+     
+  }
+  
   @$start_date=$_REQUEST['start_date'];
   @$finish_date=$_REQUEST['finish_date'];
   @$company_number=$_REQUEST['company_number'];
@@ -62,7 +71,7 @@
      
      $db_conn->autocommit(true);
      $http_requester->{'lock_database_connection'}=$db_conn;
-     $http_requester->{'lock_priority'}=30;
+     $http_requester->{'lock_priority'}=-20;
   }
   
   // Get company_id
@@ -175,10 +184,10 @@
   }
   
   $notes_array=array();
+  $notes_array_type_params=array();
   
   $parameters=array();
   $parameters['type']='company';
-  $parameters['note_type']='4';
   
   $http_requester->{'send_method'}='GET';
   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/notes/list';
@@ -221,6 +230,21 @@
                       
            $notes_array[]=intVal($value['id']);
         }
+        
+        if( is_array($value)
+           && array_key_exists('date_create', $value)
+           && is_numeric($value['date_create'])
+           && intVal($value['date_create'])>=$start_date_unix
+           && intVal($value['date_create'])<=$finish_date_unix
+           && ( intVal($company_id)===0
+              || is_numeric($value['element_id'])
+              && intVal($value['element_id'])===$company_id )
+           && array_key_exists('params', $value)
+           && array_key_exists('text', $value['params'])
+           && strVal($value['params']['text'])!=='-') {
+              
+           $notes_array_type_params[]=intVal($value['id']);
+        }        
                 
      }
      
@@ -229,6 +253,8 @@
   
   // Update notes
   $error_status=false;
+  
+  // Delete orinary notes
   $parameters=array();
   $parameters['id']=$notes_array;
   $parameters['type']='company';
@@ -240,15 +266,45 @@
      $fields[intVal($value)]=array('text'=>'-');
   }
   
+  reset($notes_array);
+  while( list($key, $value)=each($notes_array) ) {
+     write_log('ord note='.$value, $amocrm_log_file, 'DELETE NOTE');
+  }
+  
+  
   if( count($notes_array)>0 ) {
      $update_status=update_notes_info($parameters, $fields, $http_requester,
-                                       null, null, null, null, null, $error_status);
+        null, null, null, null, null, $error_status);
   }
+  
+  // Delete system notes
+  $parameters=array();
+  $parameters['id']=$notes_array_type_params;
+  $parameters['type']='company';
+  
+  $fields=array();
+  
+  reset($notes_array_type_params);
+  while( list($key, $value)=each($notes_array_type_params) ) {
+     $fields[intVal($value)]=array('params'=>array('text'=>'-'));
+  }
+  
+  reset($notes_array_type_params);
+  while( list($key, $value)=each($notes_array_type_params) ) {
+     write_log('sys note='.$value, $amocrm_log_file, 'DELETE NOTE');
+  }
+  
+  
+  if( count($notes_array_type_params)>0 ) {
+     $update_status=update_notes_info($parameters, $fields, $http_requester,
+        null, null, null, null, null, $error_status);
+  }
+  
   
   $result_array=array();
   $result_array['result']=!$error_status;
   $result=json_encode($result_array);
-    
+  
   write_log($result, $amocrm_log_file, 'DELETE NOTE');
   
   echo $result;

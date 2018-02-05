@@ -120,7 +120,7 @@
                  foreach($field_values as $value_3) {
                     if( is_array($value_3)
                         && array_key_exists('value', $value_3)
-                        && strpos( $value_3['value'], $company_number)!==false ) {
+                        && Trim($value_3['value'])===$company_number ) {
                           
                           $companies_array[]=intVal($value['id']);
                        }
