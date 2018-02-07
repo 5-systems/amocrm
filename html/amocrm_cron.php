@@ -150,7 +150,6 @@
        
            $parameters=array();
            $parameters['type']=strVal($key_type);
-           $parameters['limit_rows']='100';
     
            $notes_array_tmp=get_notes_info($parameters, $http_requester);
            
@@ -196,9 +195,7 @@
               if( $note_is_selected===false
                   && is_array($text_array)
         	         && array_key_exists('DURATION', $text_array) 
-        	         && strVal($text_array['DURATION'])==='0'
-        	         && intVal($value['date_create'])>=$date_create_note_from
-        	         && intVal($value['date_create'])<=$date_create_note_to ) {
+        	         && intVal($value['date_create'])>=$date_create_note_from ) {
               
            	     $value['text_array']=$text_array;
            	     $selected_notes_array[]=$value;
@@ -208,7 +205,6 @@
            	  if( $note_is_selected===false
            	      && is_array($text_array)
            	      && array_key_exists('LINK', $text_array)
-           	      && strlen($text_array['LINK'])===0
            	      && intVal($value['date_create'])>=$date_create_note_from ) {
            	        
         	        $value['text_array']=$text_array;
@@ -244,10 +240,7 @@
               && array_key_exists('text_array', $value)
               && is_array($value['text_array'])
               && array_key_exists('LINK', $value['text_array']) ) {
-                  
-              if( array_key_exists('LINK', $value['text_array']) 
-                  && is_string($value['text_array']['LINK']) ) $_link_record=$value['text_array']['LINK'];
-              
+                                
               if( array_key_exists('UNIQ', $value['text_array'])
                   && is_string($value['text_array']['UNIQ']) ) $_uniqueid_record=$value['text_array']['UNIQ'];
           }
@@ -335,8 +328,7 @@
               && array_key_exists('text_array', $value)
               && is_array($value['text_array'])
               && array_key_exists('DURATION', $value['text_array'])
-              && is_numeric($value['text_array']['DURATION'])
-              && intVal($value['text_array']['DURATION'])===0 ) {
+              && is_numeric($value['text_array']['DURATION']) ) {
                   
               $selected_notes_array[$i]['record_duration']=round($_record_duration, 0);
           }
@@ -373,8 +365,7 @@
               && array_key_exists('text_array', $value)
               && is_array($value['text_array'])
               && array_key_exists('LINK', $value['text_array'])
-              && is_string($value['text_array']['LINK'])
-              && strlen($value['text_array']['LINK'])===0 ) {
+              && is_string($value['text_array']['LINK']) ) {
                   
               $selected_notes_array[$i]['record_link']=$_record_link;
           }
