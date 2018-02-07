@@ -90,7 +90,17 @@
   // Callback
   $queue='997';
 
+  // Custom fields of client (filled optionally)
+  
   // Add/delete comments
   $custom_field_company_number='1775853';
+  
+  // Put custom fields id, which shoud be filled in leads
+  // Names of fields should be the same, as keys in $_REQUEST
+  $additional_custom_fields=array();
+  
+  // Roistat fields
+  $additional_custom_fields['X_ROISTAT']=array('id'=>'1783339', 'element_type'=>'lead');
+  $additional_custom_fields['X_ROISTAT_MARKER']=array('id'=>'1783343', 'element_type'=>'lead');
 
 ?>
