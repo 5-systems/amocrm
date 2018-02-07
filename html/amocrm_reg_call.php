@@ -2,7 +2,8 @@
 
 
    date_default_timezone_set('Etc/GMT-3');
-
+  
+   
    @$CallId=$_REQUEST['CallId'];
    @$CallerNumber=$_REQUEST['CallerNumber'];
    @$CalledNumber=$_REQUEST['CalledNumber'];   
@@ -406,13 +407,16 @@
        
       if( strlen($user_id)>0 ) {
           
+          $additional_custom_fields_values=$_REQUEST;
+         
           // Create lead
           $lead_id=create_lead_local($http_requester, $user_id,
                                      $client_contact_name, $client_company,
                                      $client_company_name, $amocrm_log_file,
                                      $OutcomingCall, $parsed_client_phone,
                                      $MissedCall, $FromWeb, $FirstCalledNumber,
-                                     $client_web_request, $client_web_site, $user_pipeline_status_id);
+                                     $client_web_request, $client_web_site, $user_pipeline_status_id,
+                                     $additional_custom_fields, $additional_custom_fields_values);
           
           if( strlen($lead_id)>0 ) {
               $lead_created=true;
@@ -429,6 +433,8 @@
           $phone_from=( $OutcomingCall==='1' ? $CallerNumber : $phone_prefix_presentation.$parsed_client_phone );
           $phone_to=( $OutcomingCall==='1' ? $phone_prefix_presentation.$parsed_client_phone : $CalledNumber );
           
+          $additional_custom_fields_values=$_REQUEST;
+          
           $unsorted_id=create_unsorted_local($http_requester,
                                              $phone_from, $phone_to, 
                                              $user_id, $client_contact,
@@ -436,7 +442,8 @@
                                              $client_company_name, $amocrm_log_file,
                                              $OutcomingCall, $MissedCall, $FromWeb,
                                              $FirstCalledNumber, $client_web_request,
-                                             $client_web_site, $ContactInfo, $user_pipeline_id);
+                                             $client_web_site, $ContactInfo, $user_pipeline_id,
+                                             $additional_custom_fields, $additional_custom_fields_values);
 
           
           if( strlen($unsorted_id)>0 ) {
@@ -583,7 +590,8 @@ function set_parameter($parameter, $value, $template) {
 function create_lead_local($http_requester, $user_id, $client_contact_name,
                            $client_company, $client_company_name, $amocrm_log_file,
                            $OutcomingCall, $client_phone, $MissedCall, $FromWeb,
-                           $FirstCalledNumber, $Comment, $WebSite, $user_pipeline_status_id) {
+                           $FirstCalledNumber, $Comment, $WebSite, $user_pipeline_status_id,
+                           $additional_custom_fields=null, $additional_custom_fields_values=null) {
 
     global $LogLineId;
                                
@@ -696,6 +704,28 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
         );
             
     }
+    
+    if( is_array($additional_custom_fields)
+        && count($additional_custom_fields)>0
+        && is_array($additional_custom_fields_values) ) {
+           
+        while( list($key,$value)=each($additional_custom_fields) ) {
+           
+           if( is_array($value)
+               && array_key_exists('id', $value)
+               && array_key_exists('element_type', $value)
+               && is_numeric($value['id'])
+               && array_key_exists($key, $additional_custom_fields_values) ) {
+           
+               $fields[intVal($value['id'])]=
+               array(
+                  'value'=>strVal($additional_custom_fields_values[$key]),
+                  'value_string'=>strVal($additional_custom_fields_values[$key]),
+                  'element_type'=>$value['element_type']
+               );
+           }           
+        }
+    }
    
     if( !is_null($client_contact_name) ) {
        $name.=strval($client_contact_name).' ';     
@@ -753,7 +783,8 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
 
 function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id,  $client_contact, $client_contact_name,
                                $client_company, $client_company_name, $amocrm_log_file, $OutcomingCall, $MissedCall,
-                               $FromWeb, $FirstCalledNumber, $Comment, $WebSite, $ContactInfo, $user_pipeline_id) {
+                               $FromWeb, $FirstCalledNumber, $Comment, $WebSite, $ContactInfo,
+                               $user_pipeline_id, $additional_custom_fields=null, $additional_custom_fields_values=null) {
 
     global $LogLineId;
                                    
@@ -937,7 +968,28 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
         );
         
     }
-            
+    
+    if( is_array($additional_custom_fields)
+       && count($additional_custom_fields)>0
+       && is_array($additional_custom_fields_values) ) {
+          
+          while( list($key,$value)=each($additional_custom_fields) ) {
+             
+             if( is_array($value)
+                && array_key_exists('id', $value)
+                && array_key_exists('element_type', $value)
+                && is_numeric($value['id'])
+                && array_key_exists($key, $additional_custom_fields_values) ) {
+                   
+                   $fields[intVal($value['id'])]=
+                   array(
+                      'value'=>strVal($additional_custom_fields_values[$key]),
+                      'value_string'=>strVal($additional_custom_fields_values[$key]),
+                      'element_type'=>$value['element_type']
+                   );
+                }
+          }
+    }
     
     if( !is_null($client_contact_name) ) {
         

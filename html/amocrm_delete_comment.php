@@ -71,7 +71,9 @@
      
      $db_conn->autocommit(true);
      $http_requester->{'lock_database_connection'}=$db_conn;
-     $http_requester->{'lock_priority'}=-20;
+     $http_requester->{'lock_priority'}=30;
+     $http_requester->{'time_interval_between_lock_tries_sec'}=1;
+     $http_requester->{'max_wait_time_for_lock_sec'}=100;
   }
   
   // Get company_id

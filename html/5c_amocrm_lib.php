@@ -299,7 +299,7 @@
       $return_result=false;
       $return_result=$http_requester->request();
       
-      if( $return_result===true ) return($result);
+      if( $return_result===false ) return($result);
                
       if( $return_result!==false ) {
         	$decoded_result=json_decode($return_result, true);
@@ -340,7 +340,7 @@
          $return_result=false;
          $return_result=$http_requester->request();
          
-         if( $return_result===true ) return($result);
+         if( $return_result===false ) return($result);
             
     	 if( $return_result!==false ) {
     	 
@@ -454,7 +454,7 @@
       $return_result=false;
       $return_result=$http_requester->request();
       
-      if( $return_result===true ) return($result);
+      if( $return_result===false ) return($result);
       
       if( $return_result!==false ) {
     	$decoded_result=json_decode($return_result, true);
@@ -651,6 +651,7 @@ class amocrm_http_requester {
   public $lock_priority;
   public $time_interval_between_lock_tries_sec;
   public $max_wait_time_for_lock_sec;
+  public $max_number_cycles_for_lock;
   
   // class use
   public $connected;
@@ -664,6 +665,7 @@ class amocrm_http_requester {
       $this->sleep_time_after_request_microsec=300000;
       $this->time_interval_between_lock_tries_sec=0.1;
       $this->max_wait_time_for_lock_sec=10;
+      $this->max_number_cycles_for_lock=1000;
   }
   
   public function connect($without_lock=false) {
@@ -692,7 +694,7 @@ class amocrm_http_requester {
                                       $this->time_interval_between_lock_tries_sec,
                                       $this->max_wait_time_for_lock_sec,
                                       $lock_priority,
-                                      1000,
+                                      $this->max_number_cycles_for_lock,
                                       0.0,
                                       $this->amocrm_account);
     }
@@ -1607,7 +1609,7 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
         }
         
         if( isset($custom_field_web_site)
-           && strVal($key)===strVal($custom_field_web_site) ) {
+            && strVal($key)===strVal($custom_field_web_site) ) {
               
            $parameters['request']['leads']['add'][0]['custom_fields'][]=
            array(
@@ -1620,6 +1622,23 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
            );
            
         }
+        
+        if( is_array($value)
+            && is_numeric($key)
+            && array_key_exists('element_type', $value)
+            && $value['element_type']==='lead' ) {
+              
+              $parameters['request']['leads']['add'][0]['custom_fields'][]=
+              array(
+                 'id'=>intval($key),
+                 'values'=>array(
+                    array(
+                       'value'=>strval($value['value_string'])
+                    )
+                 )
+              );
+              
+         }
           
    }
       
@@ -2078,7 +2097,23 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
                 );
                 
         }
-   
+        
+        if( is_array($value)
+            && is_numeric($key)
+            && array_key_exists('element_type', $value)
+            && $value['element_type']==='lead') {
+              
+              $parameters['request']['unsorted']['add'][0]['data']['leads'][0]['custom_fields'][]=
+              array(
+                 'id'=>intval($key),
+                 'values'=>array(
+                    array(
+                       'value'=>strval($value['value_string'])
+                    )
+                 )
+              );
+              
+        }   
    
    }
    
@@ -2111,6 +2146,25 @@ function create_unsorted($name, $pipeline_id, $phone_from, $phone_to,
                           ),
                     );             
             }
+            
+            if( is_array($value)
+                && is_numeric($key)
+                && array_key_exists('element_type', $value)
+                && $value['element_type']==='contact') {
+                  
+                $parameters['request']['unsorted']['add'][0]['data']['contacts'][0]['custom_fields']=
+                   array(
+                      array(
+                         'id'     => strVal($key),
+                         'values' => array(
+                            array(
+                               'value' => strVal($value['value_string'])
+                            )
+                         )
+                      )
+                   );
+                  
+             } 
         
         }
         
