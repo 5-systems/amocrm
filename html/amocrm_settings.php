@@ -1,46 +1,50 @@
 <?php
 
-  // Settings
-  $amocrm_log_file='/var/log/5-systems/amocrm.log';
-  $amocrm_coockie_file='/var/log/5-systems/amocookie.log';
-  $callback_log='/var/log/5-systems/callback.log';
-
-  $amocrm_USER_LOGIN='your@email.ru';
-  $amocrm_USER_HASH='AMOCRM_HASH';
-  $amocrm_account='youraccount';
-  $amocrm_sleep_time_after_request_microsec=500000;
+  // Files
+  $amocrm_coockie_file='cookie.txt';
+  $amocrm_log_file='telephony_log.txt';
+  $callback_log='callback.log';
+  
+  // Account
+  $amocrm_USER_LOGIN='a.titov@5-systems.ru';
+  $amocrm_USER_HASH='3fd0b821b8c7c80135918f3184792ce0';
+  $amocrm_account='5system';
+  $amocrm_sleep_time_after_request_microsec=340000;
 
   // Phone station
-  $phone_prefix='8';
+  $phone_prefix='7';
   $host_phone_station='127.0.0.1';
   $port_phone_station='5038';
   $user_phone_station='admin';
   $password_phone_station='amp111';
   $timeout_phone_station="10";
-  $url_records='http://yourip/monitor/';
-
+  $url_records='http://cloud.5-systems.ru:8888/monitor/';
+  
   // Cron
-  $records_shift_time_for_update_duration_in_hours_phone_station=1.0;
+  $records_shift_time_for_update_duration_in_hours_phone_station=0.0;
   $records_period_time_for_update_duration_in_hours_phone_station=1.0;
   $dir_records='/var/www/html/monitor/';
   $records_coeff_byte_to_sec_mp3_phone_station=0.000249303;
   $records_coeff_byte_to_sec_wav_phone_station=0.000062375;
   $write_log_cron=true;
   $clean_amocrm_phonestation_database=true;
-  $update_call_duration=true;
-  $clean_crm_linkedid_table=true;
-
+  $update_call_duration=false;
+  $clean_crm_linkedid_table=false;
+  
   // Fields id
   $custom_field_user_amo_crm='1779045';
   $custom_field_user_phone='1779061';
-  $custom_field_first_called_number='1781769';
+  $custom_field_first_called_number="1781769";
+  
+  // add
   $custom_field_comment='1780723';
   $custom_field_web_site='1783029';
+  // add
 
   $custom_field_do_not_create_lead='1779705';
   $custom_field_address_type='1775865';
   $custom_field_address_type_value_phone_call='4139615';
-  $custom_field_address_type_value_string_phone_call='Входящий звонок';
+  $custom_field_address_type_value_string_phone_call='Телефонный звонок';
   $custom_field_address_type_value_outcoming_call='4150987';
   $custom_field_address_type_value_string_outcoming_call='Исходящий звонок';
   $custom_field_address_type_value_missed_call='4139617';
@@ -51,47 +55,51 @@
   $custom_field_address_type_value_string_internet_shop_call='Интернет-магазин';
   $custom_field_address_type_value_online_chat_call='4139623';
   $custom_field_address_type_value_string_online_chat_call='Чат';
-  
+
   $custom_field_phone_id="1133906";
   $custom_field_phone_enum="2591354";
   $custom_field_email_id="1133908";
   $custom_field_email_enum="2591366";
-
+  
   $status_accepted_for_work='15037849';
-  $status_accepted_for_work_pipeline_id='618805';  
+  $status_accepted_for_work_pipeline_id='618805';
   $status_successful_realization='142';
   $status_canceled='143';
+  
+  // add
   $custom_field_user_pipeline_id='1783165';
   $custom_field_user_pipeline_status_id='1783167';
-
+  // add
+  
   $phone_prefix_presentation='+7';
 
   $amocrm_users=array();
-  $amocrm_users[1509886]=array('id'=>'1509886', 'name'=>'Имя пользователя', 'user_phone'=>'100');
-
+  $amocrm_users[1509886]=array('id'=>'1509886', 'name'=>'Титов Андрей', 'user_phone'=>'907');
+  $amocrm_users[263312]=array('id'=>'263312', 'name'=>'Тестов Олег', 'user_phone'=>'901');
+ 
   // Database
   $amocrm_database_user='amocrmuser';
-  $amocrm_database_password='pass_form_amocrmuser';
+  $amocrm_database_password='123';
   $amocrm_database_host='127.0.0.1';
   $amocrm_database_port='3306';
   $amocrm_database_name='amocrm_phonestation';
-
+  
   // Create database amocrm_phonestation
   $amocrm_database_root_user='root';
-  $amocrm_database_root_password='pass_from_root';
+  $amocrm_database_root_password='123';
   
   // Asterisk database asteriskcdrdb: clean table crm_linkedid
   $crm_linkedid_host='127.0.0.1';
   $crm_linkedid_port='3306';
   $crm_linkedid_database_name='asteriskcdrdb';
   $crm_linkedid_user='root';
-  $crm_linkedid_password='pass_from_root';
-  
+  $crm_linkedid_password='123';
+
   // Callback
   $queue='997';
-
-  // Custom fields of client (filled optionally)
   
+  // Custom fields of client (filled optionally)
+ 
   // Add/delete comments
   $custom_field_company_number='1775853';
   
@@ -99,8 +107,9 @@
   // Names of fields should be the same, as keys in $_REQUEST
   $additional_custom_fields=array();
   
-  // Roistat fields
+  // Roistat fields  
   $additional_custom_fields['X_ROISTAT']=array('id'=>'1783339', 'element_type'=>'lead');
   $additional_custom_fields['X_ROISTAT_MARKER']=array('id'=>'1783343', 'element_type'=>'lead');
-
+  
+  
 ?>
