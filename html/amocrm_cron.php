@@ -257,7 +257,10 @@
               
               $_full_record_path=$_dir_records.$_short_record_path;
 
-   	        write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+              if( $write_log_cron===true ) {
+   	           write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+              }
+              
           }
           elseif( strlen($_dir_records)>0
                   && strlen($_uniqueid_record)>=10
