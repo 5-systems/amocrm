@@ -31,22 +31,6 @@
    if(!isset($Comment)) $Comment='';
    if(!isset($WebPage)) $WebPage='';
    if(!isset($Department)) $Department='';
-
-   
-   // Delete
-   $_REQUEST['param_login']='5system';
-   $CallId='1517311124.1965';
-   $CallerNumber='89210000000';
-   $CallDate='20180209150155';
-   $CalledNumber='';
-   $FirstCalledNumber='+74955404614';
-   $Department='vologda';
-   $FromWeb='0';
-   $MissedCall='1';
-   $ContactInfo='Андрей Пять систем';
-   $Comment='comment';
-   $WebPage='mydomain';
-   // Delete
    
    
    $LogLineId=$CallId;
@@ -665,6 +649,7 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
     global $custom_field_first_called_number;
     global $custom_field_comment;
     global $custom_field_web_site;
+    global $phone_prefix_presentation;
     
     $result='';
     
@@ -792,7 +777,10 @@ function create_lead_local($http_requester, $user_id, $client_contact_name,
     }
     
     $name_numeric=remove_symbols($name);
-    if( strlen($name_numeric)<10 ) $name.=$client_phone.' ';
+    if( strlen($name_numeric)<10 ) {
+       $name.=( isset($phone_prefix_presentation) ? strVal($phone_prefix_presentation) : '');
+       $name.=$client_phone.' ';
+    }
 
     $current_time_string=date('d.m.Y H:i');
 
