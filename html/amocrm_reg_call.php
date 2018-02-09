@@ -2,7 +2,7 @@
 
 
    date_default_timezone_set('Etc/GMT-3');
-  
+
    
    @$CallId=$_REQUEST['CallId'];
    @$CallerNumber=$_REQUEST['CallerNumber'];
@@ -19,6 +19,7 @@
    @$password=$_REQUEST['param_password'];
    @$Comment=$_REQUEST['Comment'];
    @$WebPage=$_REQUEST['WebPage'];
+   @$Department=$_REQUEST['Department'];
 
    
    if(!isset($login)) $login='';
@@ -29,6 +30,24 @@
    if(!isset($Link)) $Link='';
    if(!isset($Comment)) $Comment='';
    if(!isset($WebPage)) $WebPage='';
+   if(!isset($Department)) $Department='';
+
+   
+   // Delete
+   $_REQUEST['param_login']='5system';
+   $CallId='1517311124.1965';
+   $CallerNumber='89210000000';
+   $CallDate='20180209150155';
+   $CalledNumber='';
+   $FirstCalledNumber='+74955404614';
+   $Department='vologda';
+   $FromWeb='0';
+   $MissedCall='1';
+   $ContactInfo='Андрей Пять систем';
+   $Comment='comment';
+   $WebPage='mydomain';
+   // Delete
+   
    
    $LogLineId=$CallId;
    
@@ -101,6 +120,7 @@
    }
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
+   $user_info=null;
    if( strlen($user_phone)>0 ) {
        
       $error_status=false;
@@ -112,13 +132,50 @@
           exit;
       }
       
-      if( is_array($user_info) ) {
-    	  if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
-    	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];
-    	  if( array_key_exists('pipeline_id', $user_info) && is_numeric($user_info['pipeline_id']) ) $user_pipeline_id=$user_info['pipeline_id'];
-    	  if( array_key_exists('name', $user_info) && is_numeric($user_info['pipeline_status_id']) ) $user_pipeline_status_id=$user_info['pipeline_status_id'];
+
+   }     
+   elseif( isset($responsible_users_by_first_called_number)
+           && is_array($responsible_users_by_first_called_number) ) {
+         
+      $user_id='';
+      $first_called_number_parsed=remove_symbols($FirstCalledNumber);
+      $first_called_number_parsed=substr($first_called_number_parsed, -10);
+      
+      if( strlen($first_called_number_parsed)>0
+         && array_key_exists($first_called_number_parsed, $responsible_users_by_first_called_number) ) {
+            
+         $user_id=$responsible_users_by_first_called_number[$first_called_number_parsed];
       }
+      
+      if( strlen($Department)>0
+         && array_key_exists($Department, $responsible_users_by_first_called_number) ) {
+            
+         $user_id=$responsible_users_by_first_called_number[$Department];
+      }
+      
+      if( is_numeric($user_id)
+          && intVal($user_id)>0 ) {
+             
+          $error_status=false;
+          $user_info=get_user_info_by_user_phone($user_id, $custom_field_user_amo_crm, $custom_field_user_amo_crm, $http_requester,
+                                                   null, null, null, null, null, $error_status);
+          
+          if( $error_status===true ) {
+             write_log('Search for user: request error', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+             exit;
+          }
+             
+      }
+            
    }
+   
+   
+   if( is_array($user_info) ) {
+ 	  if( array_key_exists('user_id', $user_info) ) $user_id=$user_info['user_id'];
+ 	  if( array_key_exists('name', $user_info) ) $user_name=$user_info['name'];
+ 	  if( array_key_exists('pipeline_id', $user_info) && is_numeric($user_info['pipeline_id']) ) $user_pipeline_id=$user_info['pipeline_id'];
+ 	  if( array_key_exists('pipeline_status_id', $user_info) && is_numeric($user_info['pipeline_status_id']) ) $user_pipeline_status_id=$user_info['pipeline_status_id'];
+   }     
 
    write_log('Search for user: user_id='.$user_id.' user_name='.$user_name, $amocrm_log_file, 'REG_CALL '.$LogLineId);  
  
@@ -513,16 +570,16 @@
    
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
    $users_for_notification=array();
-   if( strlen($user_phone)===0
-       && $OutcomingCall!=='1' ) {
-           
-       $users_for_notification=$amocrm_users;      
-   }
-   elseif( strlen($user_id)>0 ) {
+   if( strlen($user_id)>0 ) {
         $users_for_notification=array();
         $users_for_notification[]=array('id'=>$user_id,
                                          'name'=>$user_name,
                                          'user_phone'=>$user_phone);
+   }      
+   elseif( strlen($user_phone)===0
+       && $OutcomingCall!=='1' ) {
+           
+       $users_for_notification=$amocrm_users;      
    }
    
 

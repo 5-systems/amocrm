@@ -608,16 +608,16 @@ function amocrm_request($send_method, $url, $parameters, $log_path="", $coockie_
       
     $status_text='';
     if( isset($errors[$return_code_numeric]) ) {
-        $status_text='Error: '.$errors[$return_code_numeric].' code: '.$return_code.' result: '.substr($return_result, 1, 100);
+        $status_text='Error: '.$errors[$return_code_numeric].' code: '.$return_code.' result: '.substr($return_result, 1, 300);
     }
     else {
-        $status_text='Error code: '.$return_code.' result: '.substr($return_result, 1, 100);
+        $status_text='Error code: '.$return_code.' result: '.substr($return_result, 1, 300);
     }
         
     $result=false;
   }
   else {
-    $status_text='success code: '.$return_code.' result: '.substr($return_result, 1, 100);
+    $status_text='success code: '.$return_code.' result: '.substr($return_result, 1, 300);
     $result=$return_result;      
   }
   
@@ -1431,6 +1431,11 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
 	  && count($decoded_result['response']['leads'])>0 ) {
 	    
 	 $leads=$decoded_result['response']['leads'];
+	 
+	 $server_time=0;
+	 if( array_key_exists('server_time', $decoded_result['response'])
+	     && is_numeric($decoded_result['response']['server_time']) ) $server_time=intVal($decoded_result['response']['server_time']);
+	 
 	 reset($leads);
 	 while( list($key, $value)=each($leads) ) {
 
@@ -1441,6 +1446,10 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
 	    $lead_data['company_id']=strval($value['linked_company_id']);
 	    $lead_data['user_id']=strval($value['responsible_user_id']);
 	    $lead_data['date_create']=intVal($value['date_create']);
+	    $lead_data['name']=strVal($value['name']);
+	    $lead_data['pipeline_id']=strVal($value['pipeline_id']);
+	    $lead_data['server_time']=intVal($server_time);
+	    
 	 
 	    $leads_array[ intval($value['id']) ]=$lead_data;	 
 	 }
@@ -1658,6 +1667,163 @@ function create_lead($name, $status_id, $responsible_user_id, $company_id, $fiel
    
    return($result);
    
+}
+
+
+function update_leads_info($parameters='', $updated_fields=array(), $amocrm_http_requester=null,
+                           $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+      
+   $result=false;
+   
+   $current_time=time();
+   
+   // Request last modification
+   $http_requester=null;
+   if( is_null($amocrm_http_requester) ) {
+      $http_requester=new amocrm_http_requester;
+      $http_requester->{'USER_LOGIN'}=$user_login;
+      $http_requester->{'USER_HASH'}=$user_hash;
+      $http_requester->{'amocrm_account'}=$amocrm_account;
+      $http_requester->{'coockie_file'}=$coockie_file;
+      $http_requester->{'log_file'}=$log_file;
+   }
+   else {
+      $http_requester=$amocrm_http_requester;
+   }
+   
+   $objects_update=array();
+   $objects_info=null;
+   
+   if( !array_key_exists('id', $parameters) ) {
+      $objects_info=get_leads_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+      
+      if( $error_status===true ) return($result);
+   }
+   else {
+      
+      $lead_id_array=array();
+      if( is_array($parameters['id']) ) {
+         $lead_id_array=$parameters['id'];
+      }
+      elseif( is_numeric($parameters['id']) ) {
+         $lead_id_array[]=$parameters['id'];
+      }
+      
+      reset($lead_id_array);
+      while( list($key, $value)=each($lead_id_array) ) {
+         if( is_numeric($value) ) {
+            $objects_info[intVal($value)]=array('lead_id'=>strVal($value));
+         }
+      }
+      
+   }
+   
+   $all_requests_result=false;
+   $max_number_elements_by_cycle=490;
+   if( is_numeric($http_requester->max_number_rows) ) {
+      $max_number_elements_by_cycle=($http_requester->max_number_rows);
+   }
+   
+   if( is_array($objects_info)
+      && count($objects_info)>0 ) {
+         
+      $all_requests_result=true;
+      
+      $num_cycles=intVal(ceil( count($objects_info)/$max_number_elements_by_cycle ));
+      
+      $counter=0;
+      $cycle_counter=0;
+      $number_elements=count($objects_info);
+      
+      reset($objects_info);
+      while( list($key, $value)=each($objects_info) ) {
+         
+         $counter+=1;
+         $cycle_counter+=1;
+         
+         $object_data=array();
+         
+         // required properties
+         $object_data['id']=intval($value['lead_id']);
+         
+         $last_modified=$current_time;
+         if( array_key_exists('server_time', $value)
+            && is_numeric($value['server_time'])
+            && intVal($value['server_time'])>$current_time ) {
+               
+            $last_modified=intVal($value['server_time']);
+         }         
+         
+         if( is_array($value)
+            && array_key_exists('last_modified', $value)
+            && is_numeric($value['last_modified'])
+            && intVal($value['last_modified'])>$last_modified ) $last_modified=intVal($value['last_modified']);
+         
+         $object_data['updated_at']=($last_modified+1);
+         
+         $object_id_numeric=intVal($value['lead_id']);
+         reset($updated_fields);
+         if( array_key_exists($object_id_numeric, $updated_fields)
+            && is_array($updated_fields[$object_id_numeric]) ) {
+               
+            $object_update_fields=$updated_fields[$object_id_numeric];
+            reset($object_update_fields);
+            while( list($key_2, $value_2)=each($object_update_fields) ) {
+               $object_data[$key_2]=$value_2;
+            }
+            
+         }
+         
+         $notes_update[]=$object_data;
+         if( $cycle_counter>=$max_number_elements_by_cycle
+            || $counter>=$number_elements ) {
+               
+            // Update contact data
+            $cycle_result=false;
+            $request_parameters=array();
+            $request_parameters['update'][]=$object_data;
+            $request_parameters_json=json_encode($request_parameters);
+            
+            $http_requester->{'send_method'}='POST';
+            $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/api/v2/leads';
+            $http_requester->{'parameters'}=$request_parameters_json;
+            $http_requester->{'header'}=array('Content-Type: application/json');
+            
+            $return_result=$http_requester->request();
+            $http_requester->{'header'}='';
+            
+            if( $return_result===false ) $error_status=true;
+            
+            if( $return_result===false ) return($result);
+            
+            if( $return_result!==false ) {
+               
+               $decoded_result=json_decode($return_result, true);
+               if( is_array($decoded_result)
+                  && array_key_exists('response', $decoded_result)
+                  && is_array($decoded_result['response'])
+                  && array_key_exists('leads', $decoded_result['response'])
+                  && is_array($decoded_result['response']['leads'])
+                  && count($decoded_result['response']['leads'])>0 ) {
+                     
+                  $cycle_result=true;
+               }
+                  
+            }
+            
+            $cycle_counter=0;
+            $notes_update=array();
+            $all_requests_result=( $all_requests_result && $cycle_result );
+         }
+                  
+      }
+      
+   }
+   
+   
+   $result=$all_requests_result;
+   
+   return($result);
 }
 
 
