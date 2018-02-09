@@ -848,6 +848,7 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     global $custom_field_first_called_number;
     global $custom_field_comment;
     global $custom_field_web_site;
+    global $phone_prefix_presentation;
     
     $result='';
        
@@ -1062,7 +1063,10 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
     }
     
     $name_numeric=remove_symbols($name);
-    if( strlen($name_numeric)<10 ) $name.=$client_phone.' ';
+    if( strlen($name_numeric)<10 ) {
+       $name.=( isset($phone_prefix_presentation) ? strVal($phone_prefix_presentation) : '');
+       $name.=$client_phone.' ';
+    }
     
     if( $FromWeb==='1'
         && strlen($ContactInfo)>0 ) $contact_name.=strVal($ContactInfo).' ';
