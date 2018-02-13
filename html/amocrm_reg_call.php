@@ -104,35 +104,24 @@
    }
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
-   $user_info=null;
-   if( strlen($user_phone)>0 ) {
-       
-      $error_status=false;
-      $user_info=get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester,
-                                             null, null, null, null, null, $error_status);
-      
-      if( $error_status===true ) {
-          write_log('Search for user: request error', $amocrm_log_file, 'REG_CALL '.$LogLineId);
-          exit;
-      }
-      
-
-   }     
-   elseif( isset($responsible_users_by_first_called_number)
-           && is_array($responsible_users_by_first_called_number) ) {
+   $user_info=null;     
+   if( isset($responsible_users_by_first_called_number)
+       && is_array($responsible_users_by_first_called_number) ) {
          
       $user_id='';
       $first_called_number_parsed=remove_symbols($FirstCalledNumber);
       $first_called_number_parsed=substr($first_called_number_parsed, -10);
       
-      if( strlen($first_called_number_parsed)>0
-         && array_key_exists($first_called_number_parsed, $responsible_users_by_first_called_number) ) {
+      if( strlen($user_id)===0
+          && strlen($first_called_number_parsed)>0
+          && array_key_exists($first_called_number_parsed, $responsible_users_by_first_called_number) ) {
             
          $user_id=$responsible_users_by_first_called_number[$first_called_number_parsed];
       }
       
-      if( strlen($Department)>0
-         && array_key_exists($Department, $responsible_users_by_first_called_number) ) {
+      if( strlen($user_id)===0
+          && strlen($Department)>0
+          && array_key_exists($Department, $responsible_users_by_first_called_number) ) {
             
          $user_id=$responsible_users_by_first_called_number[$Department];
       }
@@ -149,6 +138,18 @@
              exit;
           }
              
+      }
+            
+   }
+   elseif( strlen($user_phone)>0 ) {
+      
+      $error_status=false;
+      $user_info=get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester,
+         null, null, null, null, null, $error_status);
+      
+      if( $error_status===true ) {
+         write_log('Search for user: request error', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+         exit;
       }
             
    }
@@ -225,7 +226,10 @@
    $parameters['query']=urlencode($parsed_client_phone);
    
    $error_status=false;
-   $contacts_array=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   $contacts_array=array();
+   if( strlen($parsed_client_phone)>0 ) {
+      $contacts_array=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   }
    
    if( $error_status===true ) {
        write_log('get_contact_info failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
@@ -296,15 +300,16 @@
             && is_numeric($value['company_id'])
             && intval($value['company_id'])>0 ) $companies_array[ intval($value['company_id']) ]=strval($value['company_id']);
   }
-  
-  $companies_array_from_request=array();
-  
+    
   $parameters=array();
   $parameters['type']='company';
   $parameters['query']=urlencode($parsed_client_phone);
     
   $error_status=false;
-  $companies_array_from_request=get_company_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+  $companies_array_from_request=array();
+  if( strlen($parsed_client_phone)>0 ) {
+      $companies_array_from_request=get_company_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+  }
     
   if( $error_status===true ) {
       write_log('get_company_info (phone) failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
