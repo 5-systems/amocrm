@@ -276,7 +276,11 @@
                   reset($selected_records);
                   while( list($key, $value)=each($selected_records) ) {
                      $_full_record_path=$key;
-	      	         write_log('record from uniquid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+                     
+                     if( $write_log_cron===true ) { 
+	      	             write_log('record from uniqueid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+                     }
+                     
                      break;
                   }
               }
