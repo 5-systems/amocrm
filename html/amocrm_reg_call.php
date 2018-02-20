@@ -141,8 +141,10 @@
       }
             
    }
-   elseif( strlen($user_phone)>0 ) {
-      
+   
+   if( strlen($user_id)===0
+       && strlen($user_phone)>0 ) {
+         
       $error_status=false;
       $user_info=get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $custom_field_user_phone, $http_requester,
          null, null, null, null, null, $error_status);
@@ -151,7 +153,7 @@
          write_log('Search for user: request error', $amocrm_log_file, 'REG_CALL '.$LogLineId);
          exit;
       }
-            
+         
    }
    
    
