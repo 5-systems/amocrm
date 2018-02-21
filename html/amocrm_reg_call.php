@@ -101,6 +101,7 @@
        $db_conn->autocommit(true);
        $http_requester->{'lock_database_connection'}=$db_conn;
        $http_requester->{'lock_priority'}=0;
+       $http_requester->{'max_wait_time_for_lock_sec'}=20;
    }
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
