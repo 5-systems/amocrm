@@ -1,6 +1,6 @@
 <?php
 
-  // version 31.01.2018
+  // version 07.03.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -840,6 +840,11 @@ class amocrm_http_requester {
            $lock_status=lock_database($db_conn, '', $min_time_from_last_lock_sec,
                                       $this->time_interval_between_lock_tries_sec, $this->max_wait_time_for_lock_sec, $lock_priority,
                                       $this->max_number_cycles_for_lock, 0.0, $this->amocrm_account);
+           
+           if( $lock_status===false ) {
+              write_log('lock is failed', $this->log_file);
+           }
+           
         }
         
         if( $lock_status===true ) {

@@ -1,6 +1,6 @@
 <?php
 
-  // version 31.01.2018
+  // version 07.03.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -223,16 +223,23 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                         && array_key_exists('time', $row)
                         && floatVal($row['time'])>=($current_time-$min_time_from_last_lock_sec)) {
                             
-                            
-                            usleep($time_interval_between_lock_tries_sec*1000000);
-                            continue;
-                        }
+                         if( $write_log_messages===true ) {
+                              $log_message='lock_amocrm_database: lock is not possible last lock='.strVal($row['time']);
+                              $log_message.=' now='.strVal($current_time);
+                              $log_message.=' wait='.strVal($min_time_from_last_lock_sec);
+                              
+                              write_log($log_message, $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+                         }
+                           
+                         usleep($time_interval_between_lock_tries_sec*1000000);
+                         continue;
+                     }
                         
-                        $lock_is_possible=true;
+                     $lock_is_possible=true;
                         
-                        if( $write_log_messages===true ) {
-                            write_log('lock_amocrm_database: lock is possible ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
-                        }
+                     if( $write_log_messages===true ) {
+                         write_log('lock_amocrm_database: lock is possible ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+                     }
                         
                 }
                 else {
@@ -255,13 +262,22 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                         $result=$query_status;
                         
                         if( $write_log_messages===true ) {
-                            write_log('lock_amocrm_database: lock is successful ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+                           $log_message='lock_amocrm_database: lock is successful set time='.sprintf('%.6f', $current_time+$lock_time_shift);
+                           write_log($log_message, $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));                           
                         }
                         
                         break;
                         
                     }
                     else {
+
+                        if( $write_log_messages===true ) {
+                           $log_message='lock_amocrm_database: lock is not possible, insert failed on '.strVal($current_time);
+                           $log_message.=' error: '.strVal($db_conn->error);
+                          
+                           write_log($log_message, $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
+                        }
+                       
                         usleep($time_interval_between_lock_tries_sec*1000000);
                     }
                     
@@ -277,6 +293,10 @@ function lock_database($db_conn, $log_file='', $min_time_from_last_lock_sec=0.5,
                 write_log('lock_amocrm_database: process removed from queue ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
             }
             
+        }
+        
+        if( $write_log_messages===true ) {
+           write_log('lock_amocrm_database: finish ', $log_file, 'LOCK_AMOCRM '.$queue_name.' '.strVal($pid));
         }
                 
         return($result);
