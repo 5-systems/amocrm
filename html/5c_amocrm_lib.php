@@ -1242,7 +1242,8 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
 
 
 function get_contact_info($parameters='', $amocrm_http_requester=null,
-                          $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+                          $amocrm_account=null, $coockie_file=null, $log_file=null,
+                          $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
 				   
    $result=array();
    
@@ -1301,14 +1302,19 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
    ksort($contacts_array, SORT_NUMERIC);
    reset($contacts_array);   
    
-   $result=$contacts_array;
+   if( $result_type==='json' ) {
+      $result=($return_result===false ? '':$return_result);
+   }
+   else {
+      $result=$contacts_array;
+   }
    
    return($result);
 }
 
-
 function get_company_info($parameters='', $amocrm_http_requester=null,
-                          $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+                          $amocrm_account=null, $coockie_file=null, $log_file=null,
+                          $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
 
    global $custom_field_do_not_create_lead;
 				   
@@ -1341,49 +1347,49 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
    
       $decoded_result=json_decode($return_result, true);
       if( is_array($decoded_result) 
-	    && array_key_exists('response', $decoded_result)
-	    && is_array($decoded_result['response'])
-	    && array_key_exists('contacts', $decoded_result['response'])
-	    && is_array($decoded_result['response']['contacts'])
-	    && count($decoded_result['response']['contacts'])>0 ) {
+   	    && array_key_exists('response', $decoded_result)
+   	    && is_array($decoded_result['response'])
+   	    && array_key_exists('contacts', $decoded_result['response'])
+   	    && is_array($decoded_result['response']['contacts'])
+   	    && count($decoded_result['response']['contacts'])>0 ) {
 	    
-	 $company_contacts=$decoded_result['response']['contacts'];
-	 reset($company_contacts);
-	 while( list($key, $value)=each($company_contacts) ) {
-
-	    $company_data=array();
-	    $company_data['company_id']=strval($value['id']);
-	    $company_data['name']=strval($value['name']);
-	    $company_data['create_lead']=true;
-	    
-	    if( isset($custom_field_do_not_create_lead)
-	        && strlen($custom_field_do_not_create_lead)>0 ) {
-	    
-	       $custom_fields=$value['custom_fields'];
-
-	       reset($custom_fields);
-	       while( list($key_2, $value_2)=each($custom_fields) ) {
-		  
-    		  if( is_array($value_2)
-    		     && array_key_exists('id', $value_2)
-    		     && strval($value_2['id'])===$custom_field_do_not_create_lead
-    		     && array_key_exists('values', $value_2)
-    		     && is_array($value_2['values'])
-    		     && count($value_2['values'])>0
-    		     && is_array($value_2['values'][0])
-    		     && array_key_exists('value', $value_2['values'][0])
-    		     && strval($value_2['values'][0]['value'])==='1' ) {
-    		     
-    		     $company_data['create_lead']=false;
-    		     break;
-    		  }
-	       
-	       }
-	       
-	    }
-	 
-	    $companies_array[ intval($value['id']) ]=$company_data;	 
-	 }
+      	 $company_contacts=$decoded_result['response']['contacts'];
+      	 reset($company_contacts);
+      	 while( list($key, $value)=each($company_contacts) ) {
+      
+      	    $company_data=array();
+      	    $company_data['company_id']=strval($value['id']);
+      	    $company_data['name']=strval($value['name']);
+      	    $company_data['create_lead']=true;
+      	    
+      	    if( isset($custom_field_do_not_create_lead)
+      	        && strlen($custom_field_do_not_create_lead)>0 ) {
+      	    
+      	       $custom_fields=$value['custom_fields'];
+      
+      	       reset($custom_fields);
+      	       while( list($key_2, $value_2)=each($custom_fields) ) {
+      		  
+          		  if( is_array($value_2)
+          		     && array_key_exists('id', $value_2)
+          		     && strval($value_2['id'])===$custom_field_do_not_create_lead
+          		     && array_key_exists('values', $value_2)
+          		     && is_array($value_2['values'])
+          		     && count($value_2['values'])>0
+          		     && is_array($value_2['values'][0])
+          		     && array_key_exists('value', $value_2['values'][0])
+          		     && strval($value_2['values'][0]['value'])==='1' ) {
+          		     
+          		     $company_data['create_lead']=false;
+          		     break;
+          		  }
+      	       
+      	       }
+      	       
+      	    }
+      	 
+      	    $companies_array[ intval($value['id']) ]=$company_data;	 
+      	 }
 	 
       } 
 
@@ -1392,15 +1398,20 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
    ksort($companies_array, SORT_NUMERIC);
    reset($companies_array);      
 				   
-   $result=$companies_array;
+   if( $result_type==='json' ) {
+      $result=($return_result===false ? '':$return_result);
+   }
+   else {
+      $result=$companies_array;
+   }
 				   
    return($result);
 				   
 }
 
-
 function get_leads_info($parameters='', $amocrm_http_requester=null,
-                        $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+                        $amocrm_account=null, $coockie_file=null, $log_file=null,
+                        $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
 
    $result=array();
    
@@ -1431,35 +1442,35 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
    
       $decoded_result=json_decode($return_result, true);
       if( is_array($decoded_result) 
-	  && array_key_exists('response', $decoded_result)
-	  && is_array($decoded_result['response'])
-	  && array_key_exists('leads', $decoded_result['response'])
-	  && is_array($decoded_result['response']['leads'])
-	  && count($decoded_result['response']['leads'])>0 ) {
+      	  && array_key_exists('response', $decoded_result)
+      	  && is_array($decoded_result['response'])
+      	  && array_key_exists('leads', $decoded_result['response'])
+      	  && is_array($decoded_result['response']['leads'])
+      	  && count($decoded_result['response']['leads'])>0 ) {
 	    
-	 $leads=$decoded_result['response']['leads'];
+      	 $leads=$decoded_result['response']['leads'];
+      	 
+      	 $server_time=0;
+      	 if( array_key_exists('server_time', $decoded_result['response'])
+      	     && is_numeric($decoded_result['response']['server_time']) ) $server_time=intVal($decoded_result['response']['server_time']);
 	 
-	 $server_time=0;
-	 if( array_key_exists('server_time', $decoded_result['response'])
-	     && is_numeric($decoded_result['response']['server_time']) ) $server_time=intVal($decoded_result['response']['server_time']);
-	 
-	 reset($leads);
-	 while( list($key, $value)=each($leads) ) {
-
-	    $lead_data=array();
-	    $lead_data['lead_id']=strval($value['id']);
-	    $lead_data['status_id']=strval($value['status_id']);
-	    $lead_data['contact_id']=strval($value['main_contact_id']);
-	    $lead_data['company_id']=strval($value['linked_company_id']);
-	    $lead_data['user_id']=strval($value['responsible_user_id']);
-	    $lead_data['date_create']=intVal($value['date_create']);
-	    $lead_data['name']=strVal($value['name']);
-	    $lead_data['pipeline_id']=strVal($value['pipeline_id']);
-	    $lead_data['server_time']=intVal($server_time);
-	    
-	 
-	    $leads_array[ intval($value['id']) ]=$lead_data;	 
-	 }
+      	 reset($leads);
+      	 while( list($key, $value)=each($leads) ) {
+      
+      	    $lead_data=array();
+      	    $lead_data['lead_id']=strval($value['id']);
+      	    $lead_data['status_id']=strval($value['status_id']);
+      	    $lead_data['contact_id']=strval($value['main_contact_id']);
+      	    $lead_data['company_id']=strval($value['linked_company_id']);
+      	    $lead_data['user_id']=strval($value['responsible_user_id']);
+      	    $lead_data['date_create']=intVal($value['date_create']);
+      	    $lead_data['name']=strVal($value['name']);
+      	    $lead_data['pipeline_id']=strVal($value['pipeline_id']);
+      	    $lead_data['server_time']=intVal($server_time);
+      	    
+      	 
+      	    $leads_array[ intval($value['id']) ]=$lead_data;	 
+      	 }
 	 
       } 
 
@@ -1467,16 +1478,21 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
    
    ksort($leads_array, SORT_NUMERIC);
    reset($leads_array);      
-				   
-   $result=$leads_array;
+
+   if( $result_type==='json' ) {
+      $result=($return_result===false ? '':$return_result);
+   }
+   else {
+      $result=$leads_array;
+   }
 				   
    return($result);
 				   
 }
 
-
 function get_companies_info($parameters='', $amocrm_http_requester=null,
-                            $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+                            $amocrm_account=null, $coockie_file=null, $log_file=null,
+                            $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
 
    $result=array();
    
@@ -1507,23 +1523,23 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
    
       $decoded_result=json_decode($return_result, true);
       if( is_array($decoded_result) 
-	  && array_key_exists('response', $decoded_result)
-	  && is_array($decoded_result['response'])
-	  && array_key_exists('contacts', $decoded_result['response'])
-	  && is_array($decoded_result['response']['contacts'])
-	  && count($decoded_result['response']['contacts'])>0 ) {
+      	  && array_key_exists('response', $decoded_result)
+      	  && is_array($decoded_result['response'])
+      	  && array_key_exists('contacts', $decoded_result['response'])
+      	  && is_array($decoded_result['response']['contacts'])
+      	  && count($decoded_result['response']['contacts'])>0 ) {
 	    
-	 $companies=$decoded_result['response']['contacts'];
-	 reset($companies);
-	 while( list($key, $value)=each($companies) ) {
-
-	    $company_data=array();
-	    $company_data['company_id']=strval($value['id']);
-	    $company_data['name']=strval($value['name']);
-	    $company_data['user_id']=strval($value['responsible_user_id']);
-	 
-	    $companies_array[ intval($value['id']) ]=$company_data;	 
-	 }
+      	 $companies=$decoded_result['response']['contacts'];
+      	 reset($companies);
+      	 while( list($key, $value)=each($companies) ) {
+      
+      	    $company_data=array();
+      	    $company_data['company_id']=strval($value['id']);
+      	    $company_data['name']=strval($value['name']);
+      	    $company_data['user_id']=strval($value['responsible_user_id']);
+      	 
+      	    $companies_array[ intval($value['id']) ]=$company_data;	 
+      	 }
 	 
       } 
 
@@ -1531,8 +1547,13 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
    
    ksort($companies_array, SORT_NUMERIC);
    reset($companies_array);      
-				   
-   $result=$companies_array;
+	
+   if( $result_type==='json' ) {
+      $result=($return_result===false ? '':$return_result);     
+   }
+   else {
+      $result=$companies_array;
+   }
 				   
    return($result);
 				   
@@ -1944,7 +1965,8 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
 
 
 function get_notes_info($parameters='', $amocrm_http_requester=null,
-                        $amocrm_account=null, $coockie_file=null, $log_file=null, $user_login=null, $user_hash=null, &$error_status=false) {
+                        $amocrm_account=null, $coockie_file=null, $log_file=null,
+                        $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
 
    $result=array();
    
@@ -1975,29 +1997,29 @@ function get_notes_info($parameters='', $amocrm_http_requester=null,
    
       $decoded_result=json_decode($return_result, true);
       if( is_array($decoded_result) 
-	  && array_key_exists('response', $decoded_result)
-	  && is_array($decoded_result['response'])
-	  && array_key_exists('notes', $decoded_result['response'])
-	  && is_array($decoded_result['response']['notes'])
-	  && count($decoded_result['response']['notes'])>0 ) {
+      	  && array_key_exists('response', $decoded_result)
+      	  && is_array($decoded_result['response'])
+      	  && array_key_exists('notes', $decoded_result['response'])
+      	  && is_array($decoded_result['response']['notes'])
+      	  && count($decoded_result['response']['notes'])>0 ) {
 	    
-	 $elements=$decoded_result['response']['notes'];
-	 reset($elements);
-	 while( list($key, $value)=each($elements) ) {
-
-	    $element_data=array();
-	    $element_data['note_id']=strval($value['id']);
-	    $element_data['note_type']=strval($value['note_type']);
-	    $element_data['element_id']=strval($value['element_id']);
-	    $element_data['element_type']=strval($value['element_type']);
-	    $element_data['created_user_id']=strval($value['created_user_id']);
-	    $element_data['responsible_user_id']=strval($value['responsible_user_id']);
-	    $element_data['last_modified']=strval($value['last_modified']);
-	    $element_data['date_create']=strval($value['date_create']);
-	    $element_data['text']=strval($value['text']);
-	 
-	    $elements_array[ intval($value['id']) ]=$element_data;	 
-	 }
+      	 $elements=$decoded_result['response']['notes'];
+      	 reset($elements);
+      	 while( list($key, $value)=each($elements) ) {
+      
+      	    $element_data=array();
+      	    $element_data['note_id']=strval($value['id']);
+      	    $element_data['note_type']=strval($value['note_type']);
+      	    $element_data['element_id']=strval($value['element_id']);
+      	    $element_data['element_type']=strval($value['element_type']);
+      	    $element_data['created_user_id']=strval($value['created_user_id']);
+      	    $element_data['responsible_user_id']=strval($value['responsible_user_id']);
+      	    $element_data['last_modified']=strval($value['last_modified']);
+      	    $element_data['date_create']=strval($value['date_create']);
+      	    $element_data['text']=strval($value['text']);
+      	 
+      	    $elements_array[ intval($value['id']) ]=$element_data;	 
+      	 }
 	 
       } 
 
@@ -2005,8 +2027,13 @@ function get_notes_info($parameters='', $amocrm_http_requester=null,
    
    ksort($elements_array, SORT_NUMERIC);
    reset($elements_array);      
-				   
-   $result=$elements_array;
+
+   if( $result_type==='json' ) {
+      $result=($return_result===false ? '':$return_result);
+   }
+   else {
+      $result=$elements_array;
+   }
 				   
    return($result);		
 
