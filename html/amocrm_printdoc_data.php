@@ -27,6 +27,7 @@
       
    
    @$param_login=$_REQUEST['param_login'];
+   @$param_amocrm_domain=$_REQUEST['param_amocrm_domain'];
    @$param_amocrm_email=$_REQUEST['param_amocrm_email'];
    @$param_amocrm_hash=$_REQUEST['param_amocrm_hash'];
    @$param_lead_id=$_REQUEST['param_lead_id'];
@@ -34,6 +35,7 @@
    @$param_company_id=$_REQUEST['param_company_id'];
       
    if(!isset($param_login)) $param_login='';
+   if(!isset($param_amocrm_domain)) $param_amocrm_domain='';
    if(!isset($param_amocrm_email)) $param_amocrm_email='';
    if(!isset($param_amocrm_hash)) $param_amocrm_hash='';
    if(!isset($param_lead_id)) $param_lead_id='';
@@ -52,6 +54,7 @@
 
    // Check parameters
    if( strlen($param_login)===0
+       || strlen($param_amocrm_domain)===0
        || strlen($param_amocrm_email)===0
        || strlen($param_amocrm_hash)===0 ) {
           
@@ -63,7 +66,7 @@
    $http_requester=new amocrm_http_requester;
    $http_requester->{'USER_LOGIN'}=$param_amocrm_email;
    $http_requester->{'USER_HASH'}=$param_amocrm_hash;
-   $http_requester->{'amocrm_account'}=$param_login;
+   $http_requester->{'amocrm_account'}=$param_amocrm_domain;
    $http_requester->{'coockie_file'}=$amocrm_coockie_file;
    $http_requester->{'log_file'}=$amocrm_log_file;
    
