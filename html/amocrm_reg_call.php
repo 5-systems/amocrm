@@ -1,8 +1,28 @@
 <?php
 
-
    date_default_timezone_set('Etc/GMT-3');
 
+   $settigs_found=false;
+   if( isset($_REQUEST['param_login'])
+      && strlen($_REQUEST['param_login'])>0 ) {
+         
+      $current_dir_path=getcwd();
+      $current_dir_path=rtrim($current_dir_path, '/').'/';
+      
+      $settings_file_path=$current_dir_path.'amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
+      if( file_exists($settings_file_path) ) {
+         require_once($settings_file_path);
+         $settigs_found=true;
+      }
+   }
+   
+   if( $settigs_found===false ) {
+      require_once('amocrm_settings.php');
+   }
+   
+   require_once('5c_amocrm_lib.php');
+   require_once('5c_std_lib.php');
+   
    
    @$CallId=$_REQUEST['CallId'];
    @$CallerNumber=$_REQUEST['CallerNumber'];
@@ -34,27 +54,6 @@
    
    
    $LogLineId=$CallId;
-   
-   $settigs_found=false;
-   if( isset($_REQUEST['param_login'])
-       && strlen($_REQUEST['param_login'])>0 ) {
-       
-       $current_dir_path=getcwd();
-       $current_dir_path=rtrim($current_dir_path, '/').'/';
-       
-       $settings_file_path=$current_dir_path.'amocrm_settings_'.strVal($_REQUEST['param_login']).'.php';
-       if( file_exists($settings_file_path) ) {
-           require_once($settings_file_path);
-           $settigs_found=true;
-       }
-   }
-   
-   if( $settigs_found===false ) {
-       require_once('amocrm_settings.php');
-   }  
-   
-   require_once('5c_amocrm_lib.php');
-   require_once('5c_std_lib.php');
 
    
    // Input parameters
