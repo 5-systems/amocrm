@@ -24,7 +24,7 @@
    require_once('5c_std_lib.php');
    require_once('5c_files_lib.php');
    require_once('5c_database_lib.php');
-      
+   
    
    @$param_login=$_REQUEST['param_login'];
    @$param_amocrm_domain=$_REQUEST['param_amocrm_domain'];
@@ -229,6 +229,38 @@
       }
       
    }
+   
+   // Account info
+   $parameters=array();
+   $parameters['with']='users';
+   
+   $http_requester->{'send_method'}='GET';
+   $http_requester->{'header'}='';
+   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/api/v2/account';
+   $http_requester->{'parameters'}=$parameters;
+   
+   $account_info=$http_requester->request();
+   
+   if( $account_info===false ) {
+      write_log('Get account info: request error', $amocrm_log_file, 'PRINT_DOC '.$LogLineId);
+      exit($return_result);     
+   }
+   
+   if( strlen($account_info)>0 ) {
+      $account_info_array=json_decode($account_info, true);
+      
+      if( is_array($account_info_array)
+         && array_key_exists('_embedded', $account_info_array)
+         && is_array($account_info_array['_embedded'])
+         && array_key_exists('users', $account_info_array['_embedded'])
+         && is_array($account_info_array['_embedded']['users'])
+         && count($account_info_array['_embedded']['users'])>0 ) {
+            
+            $result_array['users']=$account_info_array['_embedded']['users'];
+       }
+      
+   }   
+   
    
    $return_result=json_encode($result_array);
    
