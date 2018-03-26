@@ -1,6 +1,6 @@
 <?php
 
-   // version 31.01.2018
+   // version 26.03.2018
 
    require_once('5c_std_lib.php');  
    require_once('5c_files_lib.php');
@@ -32,11 +32,14 @@
    if( $settigs_found===false ) {
        require_once('amocrm_settings.php');
    }
+
+   if( !isset($_REQUEST['param_login']) ) $_REQUEST['param_login']='';
    
    $current_time=time();
   
    if( $write_log_cron===true ) { 
-   	write_log('blank_line', $amocrm_log_file, 'CRON_TASK');
+   	write_log('blank_line', $amocrm_log_file, 'CRON_TASK '.$_REQUEST['param_login']);
+   	write_log($_REQUEST, $amocrm_log_file, 'CRON_TASK '.$_REQUEST['param_login']);
    }
    
    // Clean amocrm_phonestation database
@@ -75,7 +78,7 @@
           mysql_close($db_conn);        
        }
        elseif( $write_log_cron===true ) {
-           write_log('Connection to database '.$amocrm_database_name.' is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN OLD CALLS');   
+           write_log('Connection to database '.$amocrm_database_name.' is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN OLD CALLS '.$_REQUEST['param_login']);   
        }
    
    }
@@ -99,7 +102,7 @@
            mysql_close($db_conn);
        }
        elseif( $write_log_cron===true ) {
-           write_log('Connection to database '.$crm_linkedid_database_name.' is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN crm_linkedid');
+           write_log('Connection to database '.$crm_linkedid_database_name.' is failed: '.mysql_error(), $amocrm_log_file, 'CLEAN crm_linkedid '.$_REQUEST['param_login']);
        }
        
    }   
@@ -218,7 +221,7 @@
        if( count($selected_notes_array)>0
            && $write_log_cron===true ) {
     
-          write_log('Selected '.count($selected_notes_array).' records ', $amocrm_log_file, 'UPDATE DURATION');
+          write_log('Selected '.count($selected_notes_array).' records ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
        }
        
        // Get full record path   
@@ -258,7 +261,7 @@
               $_full_record_path=$_dir_records.$_short_record_path;
 
               if( $write_log_cron===true ) {
-   	           write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+   	           write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
               }
               
           }
@@ -278,7 +281,7 @@
                      $_full_record_path=$key;
                      
                      if( $write_log_cron===true ) { 
-	      	             write_log('record from uniqueid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION');
+	      	             write_log('record from uniqueid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
                      }
                      
                      break;
@@ -291,7 +294,7 @@
        }
     
        if( $write_log_cron===true ) {   
-       	write_log('Record paths are set ', $amocrm_log_file, 'UPDATE DURATION');   
+       	write_log('Record paths are set ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);   
        }
        
        $elements_number=count($selected_notes_array);
@@ -379,7 +382,7 @@
        }
       
        if( $write_log_cron===true ) { 
-            write_log('Durations, links are set ', $amocrm_log_file, 'UPDATE DURATION');
+            write_log('Durations, links are set ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
        }
     
        // Select records with non-zero duration
@@ -480,13 +483,13 @@
        }
               
        if( $write_log_cron===true ) {
-       	write_log($update_status_text, $amocrm_log_file, 'UPDATE DURATION');
+       	write_log($update_status_text, $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
        }
        
    }
    
    if( $write_log_cron===true ) {
-       write_log('Finish', $amocrm_log_file, 'CRON_TASK');
+       write_log('Finish', $amocrm_log_file, 'CRON_TASK '.$_REQUEST['param_login']);
    }
    
    // Select function for search records
