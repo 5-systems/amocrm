@@ -198,7 +198,7 @@
     $registrator->{'phone_prefix'}=$phone_prefix_presentation;
         
     if( strlen($user_id)===0 ) {
-        // Do not create contact (unsorted)
+        // Do not create contact if unsorted and if user does not participate in amocrm
         $registrator->{'create_contact'}=false;
     }
     
