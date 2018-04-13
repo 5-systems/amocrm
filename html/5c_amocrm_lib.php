@@ -1,6 +1,6 @@
 <?php
 
-  // version 07.03.2018
+  // version 13.04.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -1827,12 +1827,18 @@ function update_leads_info($parameters='', $updated_fields=array(), $amocrm_http
             if( $return_result!==false ) {
                
                $decoded_result=json_decode($return_result, true);
-               if( is_array($decoded_result)
-                  && array_key_exists('response', $decoded_result)
-                  && is_array($decoded_result['response'])
-                  && array_key_exists('leads', $decoded_result['response'])
-                  && is_array($decoded_result['response']['leads'])
-                  && count($decoded_result['response']['leads'])>0 ) {
+               if( ( is_array($decoded_result)
+                     && array_key_exists('response', $decoded_result)
+                     && is_array($decoded_result['response'])
+                     && array_key_exists('leads', $decoded_result['response'])
+                     && is_array($decoded_result['response']['leads'])
+                     && count($decoded_result['response']['leads'])>0 )
+                    || ( is_array($decoded_result)
+                         && array_key_exists('_embedded', $decoded_result)
+                         && is_array($decoded_result['_embedded'])
+                         && array_key_exists('items', $decoded_result['_embedded'])
+                         && is_array($decoded_result['_embedded']['items'])
+                         && count($decoded_result['_embedded']['items'])>0 ) ) {
                      
                   $cycle_result=true;
                }
