@@ -3,7 +3,7 @@
   header('Access-Control-Allow-Origin: *');
   include_once('5c_files_lib.php');
 
-function request_POST($url, $parameters, $log_path="") {
+  function request_POST($url, $parameters, $log_path="", $headers="") {
 
   $result=false;
  
@@ -26,8 +26,16 @@ function request_POST($url, $parameters, $log_path="") {
        
   $curl = curl_init();
   
-  if( is_array($parameters) ) $headers[] = "multipart/form-data";
-  else $headers[] = "application/x-www-form-urlencoded";
+  if( !is_array($headers) && strval($headers)===0 ) {
+  
+     if( is_array($parameters) ) { 
+        $headers[] = "multipart/form-data";
+     }
+     else {
+        $headers[] = "application/x-www-form-urlencoded";
+     }
+     
+  }   
   
   // Request
   curl_setopt($curl, CURLOPT_URL, $url);
