@@ -1722,29 +1722,11 @@ function update_leads_info($parameters='', $updated_fields=array(), $amocrm_http
    $objects_update=array();
    $objects_info=null;
    
-   if( !array_key_exists('id', $parameters) ) {
-      $objects_info=get_leads_info($parameters, $http_requester, null, null, null, null, null, $error_status);
-      
-      if( $error_status===true ) return($result);
-   }
-   else {
-      
-      $lead_id_array=array();
-      if( is_array($parameters['id']) ) {
-         $lead_id_array=$parameters['id'];
-      }
-      elseif( is_numeric($parameters['id']) ) {
-         $lead_id_array[]=$parameters['id'];
-      }
-      
-      reset($lead_id_array);
-      while( list($key, $value)=each($lead_id_array) ) {
-         if( is_numeric($value) ) {
-            $objects_info[intVal($value)]=array('lead_id'=>strVal($value));
-         }
-      }
-      
-   }
+
+   $objects_info=get_leads_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   
+   if( $error_status===true ) return($result);
+
    
    $all_requests_result=false;
    $max_number_elements_by_cycle=490;
