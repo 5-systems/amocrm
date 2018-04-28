@@ -19,6 +19,7 @@
   $password_phone_station='amp111';
   $timeout_phone_station="10";
   $url_records='http://yourip/monitor/';
+  $url_get_record_phone_station='https://yourip/get_record_buffer.php';
   
   // Cron
   $records_shift_time_for_update_duration_in_hours_phone_station=0.0;
