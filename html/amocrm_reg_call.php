@@ -869,7 +869,7 @@ function get_leads_local(&$http_requester, $contacts_array, $companies_array, $t
    
    $result=strVal($lead_id);
    
-   echo($result);
+   return($result);
 }
 
 
