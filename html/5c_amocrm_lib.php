@@ -1290,7 +1290,8 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
     	    $contact_data['last_modified']=strval($value['last_modified']);
     	    $contact_data['linked_leads_id']=$value['linked_leads_id'];
     	    $contact_data['user_id']=$value['responsible_user_id'];
-                $contact_data['custom_fields']=$value['custom_fields'];
+    	    $contact_data['date_create']=$value['date_create'];
+          $contact_data['custom_fields']=$value['custom_fields'];
     	    
     	    $contacts_array[ intval($value['id']) ]=$contact_data;	 
     	 }
@@ -1360,6 +1361,7 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
       	    $company_data=array();
       	    $company_data['company_id']=strval($value['id']);
       	    $company_data['name']=strval($value['name']);
+      	    $company_data['date_create']=strval($value['date_create']);
       	    $company_data['create_lead']=true;
       	    
       	    if( isset($custom_field_do_not_create_lead)
@@ -1538,6 +1540,7 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
       	    $company_data['company_id']=strval($value['id']);
       	    $company_data['name']=strval($value['name']);
       	    $company_data['user_id']=strval($value['responsible_user_id']);
+      	    $company_data['date_create']=strval($value['date_create']);
       	 
       	    $companies_array[ intval($value['id']) ]=$company_data;	 
       	 }
@@ -2502,5 +2505,235 @@ function create_note($type=null, $lead_id=null, $contact_id=null, $company_id=nu
    
    return($result);
 }
+
+
+function create_contact($http_requester, $contact_data_array, &$error_status=false) {
+   
+   
+   global $custom_field_phone_id;
+   global $custom_field_phone_enum;
+   global $phone_prefix_presentation;
+   global $custom_field_email_id;
+   global $custom_field_email_enum;
+   
+   if( !isset($phone_prefix_presentation) ) $phone_prefix_presentation='';
+   
+   $result='';
+
+   $http_requester->{'send_method'}='POST';
+   $http_requester->{'url'}='https://'.($http_requester->amocrm_account).'.amocrm.ru/private/api/v2/json/contacts/set';
+   
+   $custom_fields_value=array();
+   
+   if( !is_array($contact_data_array) ) $contact_data_array=array();
+   
+   if( !array_key_exists('name', $contact_data_array)
+       || strlen($contact_data_array['name'])===0 ) {
+          
+       write_log('create_contact: failed create contact, contact name is absent ', $http_requester->{'log_file'});
+       return($result);
+   }
+   
+   // name
+   $name=$contact_data_array['name'];
+   
+   // phones
+   $parsed_phone='';
+   if( array_key_exists('phone', $contact_data_array) ) {
+      $parsed_phone=$contact_data_array['phone'];
+      $parsed_phone=remove_symbols($parsed_phone);
+      $parsed_phone=substr($parsed_phone, -10);
+   }
+   
+   if( strlen($parsed_phone)>0
+      && isset($custom_field_phone_id)
+      && isset($custom_field_phone_enum) ) {
+         
+      $phone_values=array( array("value"=>($phone_prefix_presentation.$parsed_phone), "enum"=>($custom_field_phone_enum)) );
+      $phones=array("id"=>$custom_field_phone_id, "values"=>$phone_values);
+      
+      $custom_fields_value[]=$phones;
+   }
+   
+   // email
+   $email='';
+   if( array_key_exists('email', $contact_data_array) ) {
+      $email=$contact_data_array['email'];
+   }
+   
+   if( strlen($email)>0
+      && isset($custom_field_email_id)
+      && isset($custom_field_email_enum) ) {
+         
+      $email_values=array( array("value"=>$email, "enum"=>$custom_field_email_enum) );
+      $emails=array("id"=>$custom_field_email_id, "values"=>$email_values);
+      
+      $custom_fields_value[]=$emails;
+   }
+   
+   $user_id='';
+   if( array_key_exists('user_id', $contact_data_array) ) {
+      $user_id=$contact_data_array['user_id'];
+   }
+   
+   $responsible_user_id=0;
+   if( isset($user_id)
+       && is_numeric($user_id)
+       && intVal($user_id)>0 ) {
+         
+       $responsible_user_id=intVal($user_id);
+   }
+
+   
+   $add_value=array( array("name"=>$name,
+                           "responsible_user_id"=>$responsible_user_id,
+                           "custom_fields"=>$custom_fields_value) );
+   
+   $contacts_value=array( "add"=>$add_value );
+   
+   $request_value=array( "contacts"=>$contacts_value );
+   
+   $parameters=array( "request"=>$request_value );
+   $parameters_json=json_encode($parameters);
+   
+
+   $http_requester->{'parameters'}=$parameters_json;
+   
+   $return_result=false;
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
+   if( $return_result!==false ) {
+      $decoded_result=json_decode($return_result, true);
+      $response=$decoded_result['response'];
+      
+      if( isset($response['contacts'])
+          && isset($response['contacts']['add'])
+          && count($response['contacts']['add'])>0
+          && isset($response['contacts']['add'][0]['id'])
+          && is_numeric($response['contacts']['add'][0]['id']) ) {
+             
+         $contact_id=$response['contacts']['add'][0]['id'];
+         
+         $result=strVal($contact_id);
+         write_log('create_contact: contact '.$name.' is created', $http_requester->{'log_file'});
+      }
+      else {
+         write_log('create_contact: failed create contact '.$name, $http_requester->{'log_file'});         
+      }
+   }
+   
+   $http_requester->{'header'}='';
+   
+   return($result);   
+}
+
+
+function create_note_call($http_requester, $lead_id=null, $contact_id=null, $company_id=null,
+                          $callid='', $phone='', $creation_time=0, $call_status='', $call_result='',
+                          $duration=0, $outcoming=false, $created_user_id=null,
+                          $responsable_user_id=null, $record_link='', $fields=array(), &$error_status=false) {
+   
+   $result='';
+   
+   $http_requester->{'send_method'}='POST';
+   $http_requester->{'url'}='https://'.$http_requester->amocrm_account.'.amocrm.ru/private/api/v2/json/notes/set';
+   
+   $element_type=0;
+   $element_id=0;
+   if( is_numeric($lead_id)>0 ) {
+      $element_type=2;
+      $element_id=intVal($lead_id);
+   }
+   elseif( is_numeric($contact_id)>0 ) {
+      $element_type=1;
+      $element_id=intVal($contact_id);
+   }
+   elseif( is_numeric($company_id)>0 ) {
+      $element_type=3;
+      $element_id=intVal($company_id);
+   }
+   
+   if( !is_numeric($creation_time)
+       || intVal($creation_time)===0 ) {
+   
+       $creation_time=0;
+   }
+   
+   
+   $note_type=10;
+   if( $outcoming===true ) $note_type=11;
+   
+   if( is_string($duration) ) {
+      
+      $loc_call_duration=remove_symbols($duration);
+      
+      if( strlen($loc_call_duration)>0 ) {
+         $duration=intval($loc_call_duration);
+      }
+      else {
+         $duration=0;
+      }
+      
+   }
+   
+   $parameters=array();
+   $parameters['request']['notes']['add']=array(
+      array(
+         'element_type'=>$element_type,
+         'element_id'=>$element_id,
+         'last_modified'=> $creation_time,
+         'note_type'=>$note_type,
+         'created_user_id'=>$created_user_id,
+         'responsible_user_id'=>$responsable_user_id,
+         
+         'text' => json_encode(
+            array(
+               'UNIQ' => $callid,
+               'LINK' => $record_link,
+               'PHONE' => $phone,
+               'DURATION' => $duration,
+               'SRC'=>'phonestation',
+               'call_status' => $call_status,
+               'call_result' => $call_result
+            )
+         )
+      )
+   );
+   
+   $parameters_json=json_encode($parameters);
+   
+
+   $http_requester->{'parameters'}=$parameters_json;
+   
+   $return_result=false;
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
+   if( $return_result!==false ) {
+      $decoded_result=json_decode($return_result, true);
+      
+      $response=$decoded_result['response'];     
+      if( isset($response['notes']) &&
+          isset($response['notes']['add']) &&
+          count($response['notes']['add'])>0 &&
+          isset($response['notes']['add'][0]['id']) &&
+          is_numeric($response['notes']['add'][0]['id']) ) {
+         
+         $note_id=strVal($response['notes']['add'][0]['id']);
+         
+         write_log('create_note_call: Call is added: '.$note_id, $http_requester->log_file);
+         $result=$note_id;
+      }
+      
+   }
+         
+   return($result);
+   
+}
+
+
 
 ?>
