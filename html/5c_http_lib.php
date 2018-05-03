@@ -26,7 +26,7 @@
        
   $curl = curl_init();
   
-  if( !is_array($headers) && strval($headers)===0 ) {
+  if( !is_array($headers) && strlen($headers)===0 ) {
   
      if( is_array($parameters) ) { 
         $headers[] = "multipart/form-data";
