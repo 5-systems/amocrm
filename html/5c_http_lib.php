@@ -3,7 +3,7 @@
   header('Access-Control-Allow-Origin: *');
   include_once('5c_files_lib.php');
 
-  function request_POST($url, $parameters, $log_path="", $headers="", $timeout=60, &$response_header=array()) {
+  function request_POST($url, $parameters, $log_path="", $headers="", $timeout=60, &$response_header=null) {
 
   $result=false;
  
@@ -61,7 +61,9 @@
 
   $result=curl_exec($curl);
 
-  $response_header=get_headers($url);
+  if( isset($response_header) ) {
+      $response_header=get_headers($url);
+  }
   
   return($result);
 }
