@@ -277,6 +277,20 @@
           $client_contact_name=strVal($created_contact_data_array['name']);
        }
    }
+   
+   if( is_array($created_contact_data)
+      && array_key_exists('company', $created_contact_data) ) {
+         
+      $created_company_data_array=$created_contact_data['company'];
+      if( array_key_exists('id', $created_company_data_array) ) {
+         $client_company=strVal($created_company_data_array['id']);
+         $contact_created=true;
+      }
+      
+      if( array_key_exists('name', $created_company_data_array) ) {
+         $client_company_name=strVal($created_company_data_array['name']);
+      }
+   }
 
    
    // Create call note
@@ -338,6 +352,7 @@
       exit;
    }
  
+   write_log('Check if leads are created for the company: '.($create_lead===true ? 'yes': 'no') , $amocrm_log_file, 'REG_CALL '.$LogLineId);
    
    // Get leads
    $lead_id=null;
@@ -706,31 +721,47 @@ function create_contact_local(&$http_requester, $contact_data, $user_id, $contac
    
    $result=array();
    
+   if( function_exists('amocrm_1C_create_contact') ) {
+      $result=amocrm_1C_create_contact($http_requester, $contact_data, $user_id, $contacts_array, $companies_array, $error_status, $LogLineId);
+   }
+   else {
+      $result=create_contact_default_local($http_requester, $contact_data, $user_id, $contacts_array, $companies_array, $error_status, $LogLineId);
+   }
+     
+   return($result);
+}
+
+
+function create_contact_default_local(&$http_requester, $contact_data, $user_id, $contacts_array=array(), $companies_array=array(), &$error_status=false, $LogLineId='') {
+   
+   
+   $result=array();
+   
    $create_new_contact=false;
    if( count($contacts_array)===0
-       && count($companies_array)===0 ) {
-          
-      // Do not create contact if unsorted and if user does not participate in amocrm 
+      && count($companies_array)===0 ) {
+         
+      // Do not create contact if unsorted and if user does not participate in amocrm
       if( strlen($user_id)>0 ) {
          $created_contact=create_contact($http_requester, $contact_data, $error_status);
          
          if( strlen($created_contact)>0
-             && is_numeric($created_contact) ) {
-                
-             $result['contact']=array();
-             $result['contact']['id']=strVal($created_contact);
-             
-             $result['contact']['name']='';
-             if( array_key_exists('name', $contact_data) ) {
-                $result['contact']['name']=$contact_data['name'];
-             }
-         }
-         
+            && is_numeric($created_contact) ) {
+               
+               $result['contact']=array();
+               $result['contact']['id']=strVal($created_contact);
+               
+               $result['contact']['name']='';
+               if( array_key_exists('name', $contact_data) ) {
+                  $result['contact']['name']=$contact_data['name'];
+               }
+            }
+            
       }
       
    }
-      
-   return($result);
+   
+   return($result);  
 }
 
 
