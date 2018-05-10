@@ -113,6 +113,25 @@
   // Roistat fields
   //$additional_custom_fields['X_ROISTAT']=array('id'=>'1783339', 'element_type'=>'lead');
   //$additional_custom_fields['X_ROISTAT_MARKER']=array('id'=>'1783343', 'element_type'=>'lead');
+ 
+  // amocrm_1C integration
+  $amocrm_1C_integration_used=false;
+  $amocrm_1C_integration_web_service_url='';
   
+  $amocrm_1C_integration_contact_custom_field_client_code_1='1786761';
+  $amocrm_1C_integration_contact_custom_field_client_name_1='1786763';
+  $amocrm_1C_integration_contact_custom_field_client_code_2='1786765';
+  $amocrm_1C_integration_contact_custom_field_client_name_2='1786767';
+  $amocrm_1C_integration_contact_custom_field_client_code_3='1786769';
+  $amocrm_1C_integration_contact_custom_field_client_name_3='1786771';
+  $amocrm_1C_integration_contact_custom_field_principal_client='1786773';
   
+  $amocrm_1C_integration_company_custom_field_client_code_1='1786775';
+  $amocrm_1C_integration_company_custom_field_client_name_1='1786777';
+  $amocrm_1C_integration_company_custom_field_client_code_2='1786779';
+  $amocrm_1C_integration_company_custom_field_client_name_2='1786781';
+  $amocrm_1C_integration_company_custom_field_client_code_3='1786783';
+  $amocrm_1C_integration_company_custom_field_client_name_3='1786785';
+  $amocrm_1C_integration_company_custom_field_principal_client='1786787';  
+    
 ?>
