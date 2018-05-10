@@ -54,6 +54,7 @@
   curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
   curl_setopt($curl, CURLOPT_COOKIESESSION, false);
   curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+  curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
   curl_setopt($curl, CURLOPT_POST, true);
   curl_setopt($curl, CURLOPT_POSTFIELDS, $parameters);
   curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,0);

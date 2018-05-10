@@ -1497,7 +1497,7 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
                             $amocrm_account=null, $coockie_file=null, $log_file=null,
                             $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
 
-   $result=array();
+    $result=array();
    
    $http_requester=null;
    if( is_null($amocrm_http_requester) ) {
@@ -1541,6 +1541,7 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
       	    $company_data['name']=strval($value['name']);
       	    $company_data['user_id']=strval($value['responsible_user_id']);
       	    $company_data['date_create']=strval($value['date_create']);
+      	    $company_data['custom_fields']=$value['custom_fields'];
       	 
       	    $companies_array[ intval($value['id']) ]=$company_data;	 
       	 }

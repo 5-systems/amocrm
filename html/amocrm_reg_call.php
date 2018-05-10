@@ -1,7 +1,6 @@
 <?php
 
    date_default_timezone_set('Etc/GMT-3');
-
    
    $settigs_found=false;
    if( isset($_REQUEST['param_login'])
@@ -23,6 +22,12 @@
    
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
+   
+   if( isset($amocrm_1C_integration_used)
+       && $amocrm_1C_integration_used===true ) {
+          
+      require_once('../amocrm_1C/amocrm_1C_mod.php');
+   }
    
    
    @$CallId=$_REQUEST['CallId'];
@@ -291,6 +296,8 @@
          $client_company_name=strVal($created_company_data_array['name']);
       }
    }
+   
+   write_log('After contact creation: contact_id='.$client_contact.' company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);
 
    
    // Create call note
@@ -723,7 +730,7 @@ function create_contact_local(&$http_requester, $contact_data, $user_id, $contac
    
    if( function_exists('amocrm_1C_create_contact') ) {
       $result=amocrm_1C_create_contact($http_requester, $contact_data, $user_id, $contacts_array, $companies_array, $error_status, $LogLineId);
-   }
+   }  
    else {
       $result=create_contact_default_local($http_requester, $contact_data, $user_id, $contacts_array, $companies_array, $error_status, $LogLineId);
    }
