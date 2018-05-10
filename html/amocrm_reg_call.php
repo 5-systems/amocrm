@@ -1,6 +1,14 @@
 <?php
 
    date_default_timezone_set('Etc/GMT-3');
+
+   
+   $_REQUEST['param_login']='stozone';
+   $_REQUEST['CallId']='1525948426.8767';
+   $_REQUEST['CallerNumber']='79268024109';
+   $_REQUEST['CallDate']='20180510133711';
+   $_REQUEST['CalledNumber']='1189774464942';
+   $_REQUEST['FirstCalledNumber']='4991104882';   
    
    $settigs_found=false;
    if( isset($_REQUEST['param_login'])
@@ -679,7 +687,11 @@ function get_contacts_local(&$http_requester, $client_phone, &$error_status=fals
    }
    
    
-   $result=$contacts_array;
+   $result=array();
+   reset($contacts_array);
+   while( list($key, $value)=each($contacts_array) ) {
+      $result[ intVal($value['contact_id']) ]=$value;
+   }
    
    return($result);
 }
@@ -718,7 +730,11 @@ function get_companies_local(&$http_requester, $client_phone, &$error_status=fal
       array_multisort($companies_array_for_sort, SORT_ASC, $companies_array);
    }
    
-   $result=$companies_array;
+   $result=array();
+   reset($companies_array);
+   while( list($key, $value)=each($companies_array) ) {
+      $result[ intVal($value['company_id']) ]=$value;
+   }
    
    return($result);
 }
