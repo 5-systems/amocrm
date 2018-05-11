@@ -397,6 +397,8 @@
    
    $client_web_site=strVal($WebPage);
    
+   if( !isset($additional_custom_fields) ) $additional_custom_fields=array();
+   
    if( is_null($lead_id)
        && strlen($call_note_id)>0
        && $create_lead===true ) {
@@ -584,6 +586,8 @@ function create_notification($db_conn, $user_phone, $user_id, $user_name, $lead_
          }
                
       }
+      
+      if( count($users_for_notification)===0 ) $result=true;
       
    }
    

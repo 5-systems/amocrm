@@ -366,7 +366,7 @@
             			   && isset($value_2['id'])
             			   && $value_2['id']===$this->custom_field_user_phone
             			   && is_array($value_2['values'])
-            			   && $value_2['values'][0]['value']===$this->user_phone ) {
+            			   && strpos($value_2['values'][0]['value'], $this->user_phone)!==false ) {
             			   
             			   $client_contact_user=$value;
             			   break;
@@ -1143,7 +1143,7 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
     			&& isset($value_2['id'])
     			&& $value_2['id']===$custom_field_user_phone
     			&& is_array($value_2['values'])
-    			&& $value_2['values'][0]['value']===$user_phone ) {
+    			&& strpos($value_2['values'][0]['value'], $user_phone)!==false ) {
     			
     			$client_contact=$value;
     			break;
