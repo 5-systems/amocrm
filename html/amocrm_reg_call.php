@@ -3,13 +3,6 @@
    date_default_timezone_set('Etc/GMT-3');
 
    
-   $_REQUEST['param_login']='stozone';
-   $_REQUEST['CallId']='1525948426.8767';
-   $_REQUEST['CallerNumber']='79268024109';
-   $_REQUEST['CallDate']='20180510133711';
-   $_REQUEST['CalledNumber']='1189774464942';
-   $_REQUEST['FirstCalledNumber']='4991104882';   
-   
    $settigs_found=false;
    if( isset($_REQUEST['param_login'])
       && strlen($_REQUEST['param_login'])>0 ) {
