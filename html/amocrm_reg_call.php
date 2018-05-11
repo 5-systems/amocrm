@@ -112,6 +112,8 @@
    }
 
    $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
+   $user_phone=substr($user_phone, -10);
+   
    $user_info=null;     
    if( isset($responsible_users_by_first_called_number)
        && is_array($responsible_users_by_first_called_number) ) {
@@ -386,8 +388,7 @@
    $lead_created=false;
    $unsorted_created=false;
    $unsorted_id=null;
-   
-   $user_phone=($OutcomingCall==='1' ? $CallerNumber: $CalledNumber);
+      
    $client_phone=$parsed_client_phone;
    
    $client_web_request='Комментарий: '.strVal($Comment).' ';
@@ -425,8 +426,8 @@
       elseif( strlen($user_phone)===0 ) {
           
           // Create unsorted
-          $phone_from=( $OutcomingCall==='1' ? $CallerNumber : $phone_prefix_presentation.$parsed_client_phone );
-          $phone_to=( $OutcomingCall==='1' ? $phone_prefix_presentation.$parsed_client_phone : $CalledNumber );
+          $phone_from=( $OutcomingCall==='1' ? $user_phone : $phone_prefix_presentation.$parsed_client_phone );
+          $phone_to=( $OutcomingCall==='1' ? $phone_prefix_presentation.$parsed_client_phone : $user_phone );
           
           $additional_custom_fields_values=$_REQUEST;
           
