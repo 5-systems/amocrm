@@ -1,7 +1,5 @@
 <?php 
 
-   require_once('5c_amocrm_lib.php');
-   require_once('5c_std_lib.php');
 
 
 function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $contacts_array=array(), $companies_array=array(), &$error_status=false, $LogLineId='') {
@@ -238,8 +236,8 @@ function define_contact_company_with_code_1C(&$http_requester, &$contacts_array,
    reset($contacts_array);
    while( list($key, $value)=each($contacts_array) ) {
       if( is_array($value)
-          && array_key_exists('principle_client_code_1C', $value)
-          && strlen($value['principle_client_code_1C'])>0 ) {
+          && array_key_exists('principal_client_code_1C', $value)
+          && strlen($value['principal_client_code_1C'])>0 ) {
              
           $client_code_found=true;
           
@@ -324,8 +322,8 @@ function define_contact_company_with_code_1C(&$http_requester, &$contacts_array,
    reset($client_companies_array);
    while( list($key, $value)=each($client_companies_array) ) {
       if( is_array($value)
-          && array_key_exists('principle_client_code_1C', $value)
-          && strlen($value['principle_client_code_1C'])>0 ) {
+          && array_key_exists('principal_client_code_1C', $value)
+          && strlen($value['principal_client_code_1C'])>0 ) {
              
          $client_code_found=true;
          
@@ -345,8 +343,8 @@ function define_contact_company_with_code_1C(&$http_requester, &$contacts_array,
    reset($companies_array);
    while( list($key, $value)=each($companies_array) ) {
       if( is_array($value)
-          && array_key_exists('principle_client_code_1C', $value)
-          && strlen($value['principle_client_code_1C'])>0 ) {
+          && array_key_exists('principal_client_code_1C', $value)
+          && strlen($value['principal_client_code_1C'])>0 ) {
              
           $client_code_found=true;
           
@@ -423,19 +421,19 @@ function define_contact_company_with_code_1C(&$http_requester, &$contacts_array,
 }
 
 
-function define_code_1C(&$response_array, $code_fields, $principle_client_field) {
+function define_code_1C(&$response_array, $code_fields, $principal_client_field) {
    
    $result=true;
    
    reset($response_array);
    while( list($key, $value)=each($response_array) ) {
       $response_array[$key]['code_1C']=array();
-      $response_array[$key]['principle_client']='';
-      $response_array[$key]['principle_client_code_1C']='';
+      $response_array[$key]['principal_client']='';
+      $response_array[$key]['principal_client_code_1C']='';
    }   
    
-   if( is_numeric($principle_client_field) ) {
-      $code_fields[]=$principle_client_field;    
+   if( is_numeric($principal_client_field) ) {
+      $code_fields[]=$principal_client_field;    
    }
    
    for($i=0; $i<count($code_fields); $i++) {
@@ -453,8 +451,8 @@ function define_code_1C(&$response_array, $code_fields, $principle_client_field)
                  && array_key_exists($contact_key, $values)
                  && count($values[$contact_key])>0 ) {
                 
-                if( $code_fields[$i]===$principle_client_field ) {
-                  $response_array[$contact_key]['principle_client']=$values[$contact_key][0]; 
+                if( $code_fields[$i]===$principal_client_field ) {
+                  $response_array[$contact_key]['principal_client']=$values[$contact_key][0]; 
                 }
                 else {
                   $response_array[$contact_key]['code_1C'][$i]=$values[$contact_key][0];
@@ -467,35 +465,35 @@ function define_code_1C(&$response_array, $code_fields, $principle_client_field)
    reset($response_array);
    while( list($key, $value)=each($response_array) ) {
       $code_1C_array=$response_array[$key]['code_1C'];
-      $principle_client_string=strVal($response_array[$key]['principle_client']);
+      $principal_client_string=strVal($response_array[$key]['principal_client']);
       
-      $principle_client_code_1C='';
+      $principal_client_code_1C='';
       reset($code_1C_array);
-      if( strlen($principle_client_string)>0
-          && is_numeric($principle_client_string) ) {
+      if( strlen($principal_client_string)>0
+          && is_numeric($principal_client_string) ) {
           
-          $principal_client_index= intVal($principle_client_string)-1;   
+          $principal_client_index= intVal($principal_client_string)-1;   
           if( array_key_exists($principal_client_index, $code_1C_array)
               && strlen($code_1C_array[$principal_client_index])>0 ) {
                  
-              $principle_client_code_1C=$code_1C_array[$principal_client_index];
+              $principal_client_code_1C=$code_1C_array[$principal_client_index];
           }   
              
       }
       
-      if( strlen($principle_client_code_1C)===0
+      if( strlen($principal_client_code_1C)===0
           && count($code_1C_array)>0 ) {
           
           reset($code_1C_array);   
           while( list($key_2, $value_2)=each($code_1C_array) ) {
              if( strlen($value_2)>0 ) {
-                $principle_client_code_1C=$value_2;
+                $principal_client_code_1C=$value_2;
                 break;
              }  
           }   
       }
       
-      $response_array[$key]['principle_client_code_1C']=$principle_client_code_1C;      
+      $response_array[$key]['principal_client_code_1C']=$principal_client_code_1C;      
    }   
    
    return($result);
