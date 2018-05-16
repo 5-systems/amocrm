@@ -500,6 +500,33 @@ function define_code_1C(&$response_array, $code_fields, $principal_client_field)
 }
 
 
+function get_first_field_value($response_array, $field) {
+   
+   $result=array();
+      
+   $values=get_field_values($response_array, $field);  
+   if( is_array($values) ) {
+      
+      reset($values);
+      while( list($key, $value)=each($values) ) {
+         
+         if( is_array($value) ) {
+            if( count($value)>0 ) {                
+               $result[$key]=$value[0];
+            }   
+         }
+         else {
+            $result[$key]=$value;
+         }
+         
+      }
+   
+   }
+      
+   return($result);
+}
+
+
 function get_field_values($response_array, $field) {
    
    $result=array();
