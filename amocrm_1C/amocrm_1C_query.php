@@ -64,7 +64,7 @@
 	
 	}
 	
-	if( isset($SoapClient1C) ) {
+	if( !isset($SoapClient1C) ) {
 	   $result_return='Soap object is not created ';
 	   $result_log=$result_return;
 	   write_log($result_log, $amocrm_log_file, strtoupper($method));
