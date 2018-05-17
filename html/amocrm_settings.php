@@ -116,7 +116,9 @@
  
   // amocrm_1C integration
   $amocrm_1C_integration_used=false;
-  $amocrm_1C_integration_web_service_url='';
+  $amocrm_1C_integration_web_service_url='http://127.0.0.1:8080/database_url/ws/wsamointegration.1cws?wsdl';
+  $amocrm_1C_integration_web_service_login='WebService_user';
+  $amocrm_1C_integration_web_service_password='00000';
   
   $amocrm_1C_integration_contact_custom_field_client_code_1='1786761';
   $amocrm_1C_integration_contact_custom_field_client_name_1='1786763';
