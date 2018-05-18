@@ -27,7 +27,7 @@
    
    require_once($amocrm_dir.'5c_files_lib.php');	
 	
-	@$method=json_encode($_REQUEST);
+	@$method=$_REQUEST['method'];
 	if( !isset($method) ) $method='';
    
 	@$data=json_encode($_REQUEST);
