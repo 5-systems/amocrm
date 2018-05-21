@@ -68,36 +68,9 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
        return($result);
    }
    
-   $common_info=array();
-   $common_info=merge_contact_data($contacts_array, $common_info);
-   $common_info=merge_contact_data($client_companies_array, $common_info);
-   $common_info=merge_contact_data($companies_array, $common_info);
    
-   $request_method='get_call_data';
-   $request_data=json_encode($common_info);
-   
-   $headers=array('Content-Type:application/json');
-   
-   $request_url=$amocrm_1C_integration_web_service_url;   
-   $request_result='';
-   if(  strlen($request_url)>0 ) {
-           
-      $request_separator='?';
-      if( strpos($request_url, '?')!==false ) {
-         $request_separator='&';
-      }
-   
-      $request_url.=$request_separator.'method='.$request_method;
+   $request_result=get_client_data_from_1C($contact_data, $http_requester->{'log_file'}, $LogLineId);
       
-      $request_result=request_POST($request_url, $request_data, $http_requester->{'log_file'}, $headers, 3);   
-      
-      write_log('amocrm_1C_create_contact: request result='.strVal($request_result), $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
-   
-   }
-   else {
-      write_log('amocrm_1C_create_contact: request url is not set ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);    
-   }
-   
    $create_contact_without_integration_1C=false;
    if( strlen($request_result)>0 ) {
       
@@ -114,6 +87,78 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
    }
    
    return($result);   
+}
+
+
+function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
+   
+   global $amocrm_1C_integration_web_service_url;
+   
+   $result='';
+   
+   if( !is_array($contact_data) ) return($result);
+   
+   $phone_array=array();
+   if( array_key_exists('phone', $contact_data) ) {
+      
+      $phone_value=$contact_data['phone'];         
+      $phone_value=remove_symbols($phone_value);
+      $phone_value=substr($phone_value, -10);
+      
+      if( strlen($phone_value)>=10 ) {
+         $phone_array[]=$phone_value;
+      }
+      
+   }
+     
+   $email_array=array();
+   if( array_key_exists('email', $contact_data) ) {
+          
+      $email_value=$contact_data['email'];
+      $email_value=trim($email_value);
+      
+      if( strlen($email_value)>=6 ) {
+          $email_array[]=$email_value; 
+      }
+      
+   }
+   
+   if( count($phone_array)===0
+       && count($email_array)===0 ) {
+                    
+      return($result);    
+   }
+   
+   
+   $common_info=array();
+   
+   $common_info['method']='get_client_data';
+   if( count($phone_array)>0 ) $common_info["phone"]=$phone_array;
+   if( count($email_array)>0 ) $common_info["email"]=$email_array;
+      
+   $request_data=http_build_query($common_info, null, '&', PHP_QUERY_RFC3986);
+   
+   $headers=array('Content-Type:application/x-www-form-urlencoded');
+   
+   $request_url=$amocrm_1C_integration_web_service_url;   
+   $request_result='';
+   if(  strlen($request_url)>0 ) {
+           
+      $request_separator='?';
+      if( strpos($request_url, '?')!==false ) {
+         $request_separator='&';
+      }
+      
+      $request_result=request_POST($request_url, $request_data, $log_file, $headers, 3);   
+      
+      write_log('get_client_data_from_1C: request result='.strVal($request_result), $log_file, 'REG_CALL '.$LogLineId);
+   
+   }
+   else {
+      write_log('get_client_data_from_1C: request url is not set ', $log_file, 'REG_CALL '.$LogLineId);    
+   }   
+   
+   return($result);
 }
 
 
@@ -203,6 +248,7 @@ function merge_contact_data($response_array, $contact_data=array()) {
    
    return($result);
 }
+
 
 function define_contact_company_with_code_1C(&$http_requester, &$contacts_array, &$client_companies_array, &$companies_array, &$error_status=false, $LogLineId='') {
 
@@ -590,6 +636,7 @@ function get_field_values($response_array, $field) {
  
    return($result);
 }
+
 
 function get_value($value_array) {
    
