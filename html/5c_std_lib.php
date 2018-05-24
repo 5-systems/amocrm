@@ -1,6 +1,6 @@
 <?php
 
-// version 30.10.2017
+// version 24.05.2018
 
 date_default_timezone_set ('Etc/GMT-3');
 

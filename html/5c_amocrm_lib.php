@@ -1,6 +1,6 @@
 <?php
 
-  // version 13.04.2018
+  // version 24.05.2018
 
   require_once('5c_files_lib.php');  
   require_once('5c_std_lib.php');
@@ -10,7 +10,7 @@
   ini_set("default_socket_timeout", 600);
   
   
- class amocrm_register_call {
+class amocrm_register_call {
  
   // required parameters
   public $phone;
@@ -1313,6 +1313,7 @@ function get_contact_info($parameters='', $amocrm_http_requester=null,
    return($result);
 }
 
+
 function get_company_info($parameters='', $amocrm_http_requester=null,
                           $amocrm_account=null, $coockie_file=null, $log_file=null,
                           $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
@@ -1411,6 +1412,7 @@ function get_company_info($parameters='', $amocrm_http_requester=null,
 				   
 }
 
+
 function get_leads_info($parameters='', $amocrm_http_requester=null,
                         $amocrm_account=null, $coockie_file=null, $log_file=null,
                         $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
@@ -1493,6 +1495,7 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
 				   
 }
 
+
 function get_companies_info($parameters='', $amocrm_http_requester=null,
                             $amocrm_account=null, $coockie_file=null, $log_file=null,
                             $user_login=null, $user_hash=null, &$error_status=false, $result_type='') {
@@ -1542,6 +1545,7 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
       	    $company_data['user_id']=strval($value['responsible_user_id']);
       	    $company_data['date_create']=strval($value['date_create']);
       	    $company_data['custom_fields']=$value['custom_fields'];
+      	    $company_data['linked_leads_id']=$value['linked_leads_id'];
       	 
       	    $companies_array[ intval($value['id']) ]=$company_data;	 
       	 }
@@ -1870,6 +1874,7 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
    $contact_id='';
    $last_modified=0;
    $linked_leads_id=null;
+   $custom_fields=null;
    
    $contacts_info=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
    
@@ -1889,7 +1894,10 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
 	 if( is_array($value)
 	     && array_key_exists('contact_id', $value) ) $contact_id=$value['contact_id'];
 	     
-	 if( is_array($value['linked_leads_id']) ) $linked_leads_id=$value['linked_leads_id'];    
+	 if( is_array($value['linked_leads_id']) ) $linked_leads_id=$value['linked_leads_id'];
+	 
+	 if( is_array($value)
+	     && array_key_exists('custom_fields', $value) ) $custom_fields=$value['custom_fields'];
 	     
     	 break;
       }
@@ -1900,6 +1908,7 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
    
    if( strlen($contact_id)===0
        || !is_numeric($contact_id) ) return($result);
+      
    
 
    // Update contact data
@@ -1910,22 +1919,34 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
 								     'last_modified'=>(intVal($last_modified)+1)
 							       )
 							 );
+
 							
    reset($updated_fields);
    while( list($key, $value)=each($updated_fields) ) {
       
       if( Trim($key)==='linked_leads_id' ) {
 	 
-	 if( is_array($linked_leads_id) 
-	     && is_array($value) ) {
-	     
-	    $request_parameters['request']['contacts']['update'][0]['linked_leads_id']=array_merge($linked_leads_id, $value);
-	 }   
+      	 if( is_array($linked_leads_id) 
+      	     && is_array($value) ) {
+      	     
+      	    $request_parameters['request']['contacts']['update'][0]['linked_leads_id']=array_merge($linked_leads_id, $value);
+      	 }   
 	    
       }
-      elseif( Trim($key)!=='id' ) {
-	 $request_parameters['request']['contacts']['update'][0][$key]=$value;
+      elseif( Trim($key)==='id' ) {
+         // nothing
       }
+      elseif( !is_numeric($key) ) {        
+	        $request_parameters['request']['contacts']['update'][0][$key]=$value;
+      }
+      elseif( is_numeric($key) ) {
+
+           if( !isset($request_parameters['request']['contacts']['update'][0]['custom_fields']) )  
+                $request_parameters['request']['contacts']['update'][0]['custom_fields']=array();
+                 
+           $request_parameters['request']['contacts']['update'][0]['custom_fields'][]=$value;      
+      }
+      
    }
    
    $request_parameters_json=json_encode($request_parameters);
@@ -1949,6 +1970,123 @@ function update_contact_info($parameters='', $updated_fields=array(), $amocrm_ht
           && count($decoded_result['response']['contacts'])>0 ) {
 	 
     	 $result=true;	 
+      }
+      
+   }
+
+   return($result);
+}
+
+
+function update_company_info($parameters='', $updated_fields=array(), $amocrm_http_requester=null, &$error_status=false) {
+				   
+   $result=false;
+   
+   $http_requester=$amocrm_http_requester;
+   
+   $company_id='';
+   $last_modified=0;
+   $linked_leads_id=null;
+   $custom_fields=null;
+   
+   $companies_info=get_companies_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+   
+   if( $error_status===true ) return($result);
+   
+   if( is_array($companies_info)
+       && count($companies_info)>0 ) {
+      
+      reset($companies_info);
+      while( list($key, $value)=each($companies_info) ) {
+      
+      	 if( is_array($value)
+      	     && array_key_exists('last_modified', $value)
+      	     && is_numeric($value['last_modified'])
+      	     && $value['last_modified']>$last_modified ) $last_modified=intVal($value['last_modified']);
+      	     
+      	 if( is_array($value)
+      	     && array_key_exists('company_id', $value) ) $company_id=$value['company_id'];
+      	     
+      	 if( is_array($value['linked_leads_id']) ) $linked_leads_id=$value['linked_leads_id'];
+      	 
+      	 if( is_array($value)
+      	     && array_key_exists('custom_fields', $value) ) $custom_fields=$value['custom_fields'];
+	     
+       	 break;
+      }
+      
+   }
+   
+   if( $last_modified===0 ) $last_modified=time();
+   
+   if( strlen($company_id)===0
+       || !is_numeric($company_id) ) return($result);
+      
+   
+
+   // Update company data
+   $request_parameters=array();
+   $request_parameters['update']=array(
+							       array(
+								     'id'=>intVal($company_id),
+								     'updated_at'=>(intVal($last_modified)+1)
+							       )
+							 );
+
+							
+   reset($updated_fields);
+   while( list($key, $value)=each($updated_fields) ) {
+      
+      if( Trim($key)==='linked_leads_id' ) {
+	 
+      	 if( is_array($linked_leads_id) 
+      	     && is_array($value) ) {
+      	     
+      	    $request_parameters['update'][0]['leads_id']=array_merge($linked_leads_id, $value);
+      	 }   
+	    
+      }
+      elseif( Trim($key)==='id' ) {
+         // nothing
+      }
+      elseif( !is_numeric($key) ) {        
+	        $request_parameters['update'][0][$key]=$value;
+      }
+      elseif( is_numeric($key) ) {
+
+           if( !isset($request_parameters['update'][0]['custom_fields']) )  
+                $request_parameters['update'][0]['custom_fields']=array();
+                 
+           $request_parameters['update'][0]['custom_fields'][]=$value;      
+      }
+      
+   }
+   
+   $request_parameters_json=json_encode($request_parameters);
+
+   $http_requester->{'send_method'}='POST';
+   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/api/v2/companies';
+   $http_requester->{'parameters'}=$request_parameters_json;
+   $http_requester->{'header'}=array('Content-Type: application/json');
+   
+   $return_result=$http_requester->request();
+   
+   $http_requester->{'header'}='';
+   
+   if( $return_result===false ) $error_status=true;
+   
+   if( $return_result!==false ) {
+   
+      $decoded_result=json_decode($return_result, true);
+      
+      if( is_array($decoded_result)
+          && array_key_exists('_embedded', $decoded_result)
+          && is_array($decoded_result['_embedded'])
+          && array_key_exists('items', $decoded_result['_embedded'])
+          && is_array($decoded_result['_embedded']['items'])
+          && count($decoded_result['_embedded']['items'])>0 ) {
+             
+   	    $result=true;             
       }
       
    }
@@ -2539,39 +2677,89 @@ function create_contact($http_requester, $contact_data_array, &$error_status=fal
    $name=$contact_data_array['name'];
    
    // phones
-   $parsed_phone='';
+   $phone_array=array();
+   $parsed_phone_array=array();
    if( array_key_exists('phone', $contact_data_array) ) {
-      $parsed_phone=$contact_data_array['phone'];
-      $parsed_phone=remove_symbols($parsed_phone);
-      $parsed_phone=substr($parsed_phone, -10);
+      
+      if( is_array($contact_data_array['phone']) ) {
+         $phone_array=$contact_data_array['phone'];
+      }
+      else {
+         $phone_array[]=strVal($contact_data_array['phone']);
+      }
+      
    }
    
-   if( strlen($parsed_phone)>0
-      && isset($custom_field_phone_id)
-      && isset($custom_field_phone_enum) ) {
+   reset($phone_array);
+   while( list($key, $value)=each($phone_array) ) {   
+      $parsed_phone=$value;
+      $parsed_phone=remove_symbols($parsed_phone);
+      $parsed_phone=substr($parsed_phone, -10);
+      
+      if( strlen($parsed_phone)>0 ) {
+         $parsed_phone_array[]=$parsed_phone;
+      }
+   }
+   
+   if( count($parsed_phone_array)>0
+       && isset($custom_field_phone_id)
+       && isset($custom_field_phone_enum) ) {
          
-      $phone_values=array( array("value"=>($phone_prefix_presentation.$parsed_phone), "enum"=>($custom_field_phone_enum)) );
+      $phone_values=array();
+      
+      reset($parsed_phone_array);
+      while( list($key, $value)=each($parsed_phone_array) ) {
+          $phone_values[]=array("value"=>($phone_prefix_presentation.$value), "enum"=>($custom_field_phone_enum));
+      }
+      
       $phones=array("id"=>$custom_field_phone_id, "values"=>$phone_values);
       
       $custom_fields_value[]=$phones;
    }
    
-   // email
-   $email='';
+   // emails
+   $email_array=array();
    if( array_key_exists('email', $contact_data_array) ) {
-      $email=$contact_data_array['email'];
+      
+      if( is_array($contact_data_array['email']) ) {
+         $email_array=$contact_data_array['email'];
+      }
+      else {
+         $email_array[]=strVal($contact_data_array['email']);
+      }
+      
    }
    
-   if( strlen($email)>0
-      && isset($custom_field_email_id)
-      && isset($custom_field_email_enum) ) {
+   if( count($email_array)>0
+       && isset($custom_field_email_id)
+       && isset($custom_field_email_enum) ) {
          
-      $email_values=array( array("value"=>$email, "enum"=>$custom_field_email_enum) );
+      $email_values=array();
+      while( list($key, $value)=each($email_array) ) {
+         $email_values[]=array("value"=>$value, "enum"=>$custom_field_email_enum);
+      }
+         
       $emails=array("id"=>$custom_field_email_id, "values"=>$email_values);
       
       $custom_fields_value[]=$emails;
    }
+
+   // addition custom fields
+   reset($contact_data_array);
+   while( list($key, $value)=each($contact_data_array) ) {
+      
+      if( is_numeric($key) ) {
+         $custom_field_values=array();
+         $custom_field_values[]=array("value"=>$value);
+         
+         $custom_field=array("id"=>strVal($key), "values"=>$custom_field_values);
+         
+         $custom_fields_value[]=$custom_field;
+      }
+      
+   }
    
+   // user_id
    $user_id='';
    if( array_key_exists('user_id', $contact_data_array) ) {
       $user_id=$contact_data_array['user_id'];
@@ -2584,11 +2772,23 @@ function create_contact($http_requester, $contact_data_array, &$error_status=fal
          
        $responsible_user_id=intVal($user_id);
    }
-
+   
    
    $add_value=array( array("name"=>$name,
                            "responsible_user_id"=>$responsible_user_id,
                            "custom_fields"=>$custom_fields_value) );
+   
+   $simple_fields=array();
+   $simple_fields[]='linked_company_id';
+   
+   reset($contact_data_array);
+   while( list($key, $value)=each($contact_data_array) ) {
+      
+      if( in_array(strVal($key), $simple_fields) ) {
+         $add_value[0][strVal($key)]=strVal($value);         
+      }
+      
+   }   
    
    $contacts_value=array( "add"=>$add_value );
    
@@ -2623,6 +2823,180 @@ function create_contact($http_requester, $contact_data_array, &$error_status=fal
       else {
          write_log('create_contact: failed create contact '.$name, $http_requester->{'log_file'});         
       }
+   }
+   
+   $http_requester->{'header'}='';
+   
+   return($result);   
+}
+
+
+function create_company($http_requester, $contact_data_array, &$error_status=false) {
+   
+   
+   global $custom_field_phone_id;
+   global $custom_field_phone_enum;
+   global $phone_prefix_presentation;
+   global $custom_field_email_id;
+   global $custom_field_email_enum;
+   
+   if( !isset($phone_prefix_presentation) ) $phone_prefix_presentation='';
+   
+   $result='';
+
+   $http_requester->{'send_method'}='POST';
+   $http_requester->{'url'}='https://'.($http_requester->amocrm_account).'.amocrm.ru/api/v2/companies';
+   $http_requester->{'header'}=array('Content-Type: application/json');
+   
+   $custom_fields_value=array();
+   
+   if( !is_array($contact_data_array) ) $contact_data_array=array();
+   
+   if( !array_key_exists('name', $contact_data_array)
+       || strlen($contact_data_array['name'])===0 ) {
+          
+       write_log('create_company: failed create company, company name is absent ', $http_requester->{'log_file'});
+       return($result);
+   }
+   
+   // name
+   $name=$contact_data_array['name'];
+   
+   // phones
+   $phone_array=array();
+   $parsed_phone_array=array();
+   if( array_key_exists('phone', $contact_data_array) ) {
+      
+      if( is_array($contact_data_array['phone']) ) {
+         $phone_array=$contact_data_array['phone'];
+      }
+      else {
+         $phone_array[]=strVal($contact_data_array['phone']);
+      }
+      
+   }
+   
+   reset($phone_array);
+   while( list($key, $value)=each($phone_array) ) {   
+      $parsed_phone=$value;
+      $parsed_phone=remove_symbols($parsed_phone);
+      $parsed_phone=substr($parsed_phone, -10);
+      
+      if( strlen($parsed_phone)>0 ) {
+         $parsed_phone_array[]=$parsed_phone;
+      }
+   }
+   
+   if( count($parsed_phone_array)>0
+       && isset($custom_field_phone_id)
+       && isset($custom_field_phone_enum) ) {
+         
+      $phone_values=array();
+      
+      reset($parsed_phone_array);
+      while( list($key, $value)=each($parsed_phone_array) ) {
+          $phone_values[]=array("value"=>($phone_prefix_presentation.$value), "enum"=>($custom_field_phone_enum));
+      }
+      
+      $phones=array("id"=>$custom_field_phone_id, "values"=>$phone_values);
+      
+      $custom_fields_value[]=$phones;
+   }
+   
+   // emails
+   $email_array=array();
+   if( array_key_exists('email', $contact_data_array) ) {
+      
+      if( is_array($contact_data_array['email']) ) {
+         $email_array=$contact_data_array['email'];
+      }
+      else {
+         $email_array[]=strVal($contact_data_array['email']);
+      }
+      
+   }
+   
+   if( count($email_array)>0
+       && isset($custom_field_email_id)
+       && isset($custom_field_email_enum) ) {
+         
+      $email_values=array();
+      while( list($key, $value)=each($email_array) ) {
+         $email_values[]=array("value"=>$value, "enum"=>$custom_field_email_enum);
+      }
+         
+      $emails=array("id"=>$custom_field_email_id, "values"=>$email_values);
+      
+      $custom_fields_value[]=$emails;
+   }
+
+   // addition custom fields
+   reset($contact_data_array);
+   while( list($key, $value)=each($contact_data_array) ) {
+      
+      if( is_numeric($key) ) {
+         $custom_field_values=array();
+         $custom_field_values[]=array("value"=>$value);
+         
+         $custom_field=array("id"=>strVal($key), "values"=>$custom_field_values);
+         
+         $custom_fields_value[]=$custom_field;
+      }
+      
+   }
+   
+   // user_id
+   $user_id='';
+   if( array_key_exists('user_id', $contact_data_array) ) {
+      $user_id=$contact_data_array['user_id'];
+   }
+   
+   $responsible_user_id=0;
+   if( isset($user_id)
+       && is_numeric($user_id)
+       && intVal($user_id)>0 ) {
+         
+       $responsible_user_id=intVal($user_id);
+   }
+   
+   
+   $add_value=array( array("name"=>$name,
+                           "responsible_user_id"=>$responsible_user_id,
+                           "custom_fields"=>$custom_fields_value) );
+   
+   $parameters=array("add"=>$add_value);
+   $parameters_json=json_encode($parameters);
+   
+
+   $http_requester->{'parameters'}=$parameters_json;
+   
+   $return_result=false;
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
+   if( $return_result!==false ) {
+      
+      $decoded_result=json_decode($return_result, true);
+      
+      if( is_array($decoded_result)
+          && array_key_exists('_embedded', $decoded_result)
+          && is_array($decoded_result['_embedded'])
+          && array_key_exists('items', $decoded_result['_embedded'])
+          && is_array($decoded_result['_embedded']['items'])
+          && count($decoded_result['_embedded']['items'])>0
+          && is_array($decoded_result['_embedded']['items'][0])
+          && array_key_exists('id', $decoded_result['_embedded']['items'][0]) ) {
+          
+          $contact_id=$decoded_result['_embedded']['items'][0]['id'];   
+   	    $result=strVal($contact_id);
+   	    
+   	    write_log('create_company: company '.$name.' is created', $http_requester->{'log_file'});
+      }
+      else {
+          write_log('create_company: failed create company '.$name, $http_requester->{'log_file'});
+      }
+
    }
    
    $http_requester->{'header'}='';
@@ -2736,5 +3110,143 @@ function create_note_call($http_requester, $lead_id=null, $contact_id=null, $com
 }
 
 
+
+function contact_search_filtered($parameters='', $amocrm_http_requester=null, $search_value='', $search_fields=array(), &$error_status=false) {
+   
+   $result=array();
+   
+   $http_requester=$amocrm_http_requester; 
+   
+   $contacts_array=array();
+   
+   $http_requester->{'send_method'}='GET';
+   $http_requester->{'url'}='https://'.($http_requester->{'amocrm_account'}).'.amocrm.ru/private/api/v2/json/contacts/list';
+   $http_requester->{'parameters'}=$parameters;
+   
+   $return_result=$http_requester->request();
+   
+   if( $return_result===false ) $error_status=true;
+   
+   if( $return_result!==false ) {
+   
+      $decoded_result=json_decode($return_result, true);
+      if( is_array($decoded_result)
+      	  && array_key_exists('response', $decoded_result)
+                && is_array($decoded_result['response'])
+                && array_key_exists('contacts', $decoded_result['response'])
+                && is_array($decoded_result['response']['contacts'])
+                && count($decoded_result['response']['contacts'])>0 ) {
+      	    
+       	 $client_contacts=$decoded_result['response']['contacts'];
+       	 reset($client_contacts);
+       	 while( list($key, $value)=each($client_contacts) ) {
+       	    
+       	    // filter
+       	    if( count($search_fields)>0
+       	        && is_array($value) ) {
+       	       
+        	        $search_result=search_filter($value, $search_value, $search_fields);
+        	        if( $search_result===false ) continue;
+       	              	           
+       	    }
+       	    
+       	    $contacts_array[ intval($value['id']) ]=$value;	 
+       	 }
+	 
+      }
+      
+   }
+   
+   ksort($contacts_array, SORT_NUMERIC);
+   reset($contacts_array);   
+   
+   $result=$contacts_array;
+   
+   return($result);
+}
+
+
+
+function search_filter($data_array, $search_value='', $search_fields=array()) {
+ 
+   $result=false;
+   
+   if( !is_array($search_fields)
+       || count($search_fields)===0 ) {
+          
+      return($result);       
+   }
+   
+   $search_fields_id=$search_fields;
+   reset($search_fields_id);
+   while( list($key, $value)=each($search_fields_id) ) {
+      $search_fields_id[$key]=strVal($value);
+   }
+   
+   reset($data_array);
+   while( list($key, $value)=each($data_array) ) {
+      
+      if( !is_array($value) ) {
+         
+         if( in_array(strVal($key), $search_fields_id)
+             && strVal($value)===strVal($search_value) ) {
+                
+            $result=true;
+            break;
+         }
+         
+      }     
+      elseif( is_array($value)
+              && $key==='custom_fields' ) {
+            
+            $value_is_found=false;
+            $custom_fields_array=$value;
+            reset($custom_fields_array);
+            while( list($key_2, $value_2)=each($custom_fields_array) ) {
+               
+               if( is_array($value_2)
+                  && array_key_exists('id', $value_2)
+                  && in_array(strVal($value_2['id']), $search_fields_id)
+                  && array_key_exists('values', $value_2)
+                  && is_array($value_2['values']) ) {
+                     
+                  $field_code='';
+                  if( array_key_exists('code', $value_2) ) $field_code=$value_2['code'];
+                  
+                  $field_values=$value_2['values'];
+                  reset($field_values);
+                  foreach($field_values as $value_3) {
+                     
+                     if( is_array($value_3)
+                         && array_key_exists('value', $value_3) ) {
+                            
+                        $current_value=$value_3['value'];
+                        if( $field_code==='PHONE' ) {
+                           $current_value=remove_symbols($current_value);
+                        }
+                        
+                        if( strlen($search_value)>0
+                            && strpos($current_value, $search_value)!==false ) {
+                               
+                           $value_is_found=true;
+                           $result=true;
+                           break;
+                        }
+                        
+                     }
+                        
+                  }
+                  
+               }
+                                    
+               if( $value_is_found===true ) break;
+               
+           }
+       }
+       
+   }
+   
+   return($result);   
+}
 
 ?>

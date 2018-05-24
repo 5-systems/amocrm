@@ -1,6 +1,7 @@
 <?php
 
-// version 30.10.2017
+// version 24.05.2018
+include_once('5c_std_lib.php');
 
 date_default_timezone_set('Etc/GMT-3');
 ini_set("default_socket_timeout", 600);
@@ -133,8 +134,11 @@ function write_log($message, $log_path, $prefix='') {
 			    $message_text.=' '.$current_parameter.': '.print_r($current_value, true);
 			}
 		}
-	
+
+		if( function_exists('html_to_utf8') ) $message_text=html_to_utf8($message_text);		
+		
 		$message_text.=PHP_EOL;
+		
 		fwrite($fp, $message_text);
 		fflush($fp);
 		fclose($fp); 			

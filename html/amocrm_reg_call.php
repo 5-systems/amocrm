@@ -23,6 +23,7 @@
    
    require_once('5c_amocrm_lib.php');
    require_once('5c_std_lib.php');
+   require_once('5c_http_lib.php');
    
    if( isset($amocrm_1C_integration_used)
        && $amocrm_1C_integration_used===true ) {
@@ -278,11 +279,14 @@
        $created_contact_data_array=$created_contact_data['contact'];
        if( array_key_exists('id', $created_contact_data_array) ) {   
           $client_contact=strVal($created_contact_data_array['id']);
-          $contact_created=true;
        }
        
        if( array_key_exists('name', $created_contact_data_array) ) {
           $client_contact_name=strVal($created_contact_data_array['name']);
+       }
+       
+       if( array_key_exists('contact_created', $created_contact_data_array) ) {
+          $contact_created=$created_contact_data_array['contact_created'];
        }
    }
    
@@ -292,12 +296,12 @@
       $created_company_data_array=$created_contact_data['company'];
       if( array_key_exists('id', $created_company_data_array) ) {
          $client_company=strVal($created_company_data_array['id']);
-         $contact_created=true;
       }
       
       if( array_key_exists('name', $created_company_data_array) ) {
          $client_company_name=strVal($created_company_data_array['name']);
       }
+          
    }
    
    write_log('After contact creation: contact_id='.$client_contact.' company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);

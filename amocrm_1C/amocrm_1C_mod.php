@@ -1,6 +1,4 @@
-<?php 
-
-
+<?php
 
 function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $contacts_array=array(), $companies_array=array(), &$error_status=false, $LogLineId='') {
    
@@ -18,19 +16,19 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
 
    
    // Define client and company if code_1C is set
-   $client_id='';
-   $client_name='';
+   $contact_id=null;
+   $contact_name=null;
    
-   $company_id='';
-   $company_name=''; 
+   $company_id=null;
+   $company_name=null; 
    
    $client_companies_array=array();
    
    $client_company_array=define_contact_company_with_code_1C($http_requester, $contacts_array, $client_companies_array, $companies_array, $error_status, $LogLineId);
      
-   if( array_key_exists('client_id', $client_company_array) ) {          
-      $client_id=$client_company_array['client_id'];
-      $client_name=$client_company_array['client_name'];
+   if( array_key_exists('contact_id', $client_company_array) ) {          
+      $contact_id=$client_company_array['contact_id'];
+      $contact_name=$client_company_array['contact_name'];
    }
    
    if( array_key_exists('company_id', $client_company_array) ) {        
@@ -39,23 +37,25 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
    }   
    
    // code_1C of client is defined
-   if( strlen($client_id)>0
+   if( strlen($contact_id)>0
        || strlen($company_id)>0 ) {
        
        // Request to 1C to define address type
        $result['address_type']='';
           
        $client_array=array();
-       $client_array['id']=$client_id;
-       $client_array['name']=$client_name;
        
-       $result['contact']=$client_array;
+       if( isset($contact_id) ) $client_array['id']=$contact_id;
+       if( isset($contact_name) ) $client_array['name']=$contact_name;
+       
+       if( count($client_array)>0 ) $result['contact']=$client_array;
        
        $company_array=array();
-       $company_array['id']=$company_id;
-       $company_array['name']=$company_name;
        
-       $result['company']=$company_array;
+       if( isset($company_id) ) $company_array['id']=$company_id;
+       if( isset($company_name) ) $company_array['name']=$company_name;
+       
+       if( count($company_array)>0 ) $result['company']=$company_array;
        
        return($result);
    }
@@ -69,12 +69,66 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
    }
    
    
-   $request_result=get_client_data_from_1C($contact_data, $http_requester->{'log_file'}, $LogLineId);
+   $client_data_array=get_client_data_from_1C($contact_data, $http_requester->{'log_file'}, $LogLineId);
+    
+   $request_status=false;
+   
+   reset($client_data_array);   
+   while( list($key, $value)=each($client_data_array) ) {
       
+      if( is_array($value)
+          && array_key_exists('result', $value) ) {
+      
+          if( $value['result']==='success' ) {
+             $request_status=true;
+             write_log('amocrm_1C_create_contact: use 1C data ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+             break;
+          }
+      }
+ 
+   }
+   
    $create_contact_without_integration_1C=false;
-   if( strlen($request_result)>0 ) {
+   if( $request_status===true ) {
       
       // create contact and company
+      $client_company_array=create_contact_company_using_1C_data($http_requester, $client_data_array, $contacts_array, $client_companies_array, $companies_array, $error_status, $LogLineId);
+      if( $error_status===true ) {
+         write_log('amocrm_1C_create_contact: create_contact_company_using_1C_data method failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+         return($result);
+      }
+
+      $contact_id=null;
+      $contact_name=null;
+      
+      $company_id=null;
+      $company_name=null;
+      
+      if( array_key_exists('contact_id', $client_company_array) ) {          
+         $contact_id=$client_company_array['contact_id'];
+         $contact_name=$client_company_array['contact_name'];
+      }
+      
+      if( array_key_exists('company_id', $client_company_array) ) {        
+         $company_id=$client_company_array['company_id'];
+         $company_name=$client_company_array['company_name'];
+      }      
+      
+       $result['address_type']='';
+          
+       $client_array=array();
+       
+       if( isset($contact_id) ) $client_array['id']=$contact_id;
+       if( isset($contact_name) ) $client_array['name']=$contact_name;
+       
+       if( count($client_array)>0 ) $result['contact']=$client_array;
+       
+       $company_array=array();
+       
+       if( isset($company_id) ) $company_array['id']=$company_id;
+       if( isset($company_name) ) $company_array['name']=$company_name;
+       
+       if( count($company_array)>0 ) $result['company']=$company_array;     
       
    }
    else {      
@@ -93,8 +147,9 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
 function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
    
    global $amocrm_1C_integration_web_service_url;
+   global $amocrm_1C_integration_web_service_request_timeout;
    
-   $result='';
+   $result=array();
    
    if( !is_array($contact_data) ) return($result);
    
@@ -140,7 +195,16 @@ function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
    
    $headers=array('Content-Type:application/x-www-form-urlencoded');
    
-   $request_url=$amocrm_1C_integration_web_service_url;   
+   $request_url=$amocrm_1C_integration_web_service_url;
+   $request_timeout=$amocrm_1C_integration_web_service_request_timeout;
+   if( !isset($request_timeout)
+       || !is_numeric($request_timeout) ) {
+          
+       $request_timeout=3;   
+   }
+   
+   if( is_string($request_timeout) ) $request_timeout=floatVal($request_timeout);
+   
    $request_result='';
    if(  strlen($request_url)>0 ) {
            
@@ -149,14 +213,24 @@ function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
          $request_separator='&';
       }
       
-      $request_result=request_POST($request_url, $request_data, $log_file, $headers, 3);   
+      $request_result=request_POST($request_url, $request_data, $log_file, $headers, $request_timeout);   
       
       write_log('get_client_data_from_1C: request result='.strVal($request_result), $log_file, 'REG_CALL '.$LogLineId);
    
    }
    else {
       write_log('get_client_data_from_1C: request url is not set ', $log_file, 'REG_CALL '.$LogLineId);    
-   }   
+   }
+   
+   if( strlen($request_result)>0 ) {
+      
+      $result=json_decode($request_result, true);
+      
+   }
+   
+   if( !is_array($result) ) {
+      $result=array();
+   }
    
    return($result);
 }
@@ -457,8 +531,8 @@ function define_contact_company_with_code_1C(&$http_requester, &$contacts_array,
           
    }
    
-   $result['client_id']=$client_id;
-   $result['client_name']=$client_name;   
+   $result['contact_id']=$client_id;
+   $result['contact_name']=$client_name;   
    
    $result['company_id']=$company_id;
    $result['company_name']=$company_name;   
@@ -662,7 +736,599 @@ function get_value($value_array) {
 }
 
 
+function create_contact_company_using_1C_data($http_requester, $client_data_array, $contacts_array, $client_companies_array, $companies_array, &$error_status=false, $LogLineId='') {
+
+   global $amocrm_1C_integration_contact_custom_field_client_code_1;
+   global $amocrm_1C_integration_contact_custom_field_client_code_2;
+   global $amocrm_1C_integration_contact_custom_field_client_code_3;
+   
+   global $amocrm_1C_integration_contact_custom_field_client_name_1;
+   global $amocrm_1C_integration_contact_custom_field_client_name_2;
+   global $amocrm_1C_integration_contact_custom_field_client_name_3;
+   
+   global $amocrm_1C_integration_contact_custom_field_principal_client;
+   
+   global $amocrm_1C_integration_company_custom_field_client_code_1;
+   global $amocrm_1C_integration_company_custom_field_client_code_2;
+   global $amocrm_1C_integration_company_custom_field_client_code_3;
+   
+   global $amocrm_1C_integration_company_custom_field_client_name_1;
+   global $amocrm_1C_integration_company_custom_field_client_name_2;   
+   global $amocrm_1C_integration_company_custom_field_client_name_3;
+   
+   global $amocrm_1C_integration_company_custom_field_principal_client;   
+   
+   $result=array();
+
+   
+   $data_1C=array();
+   
+   $contacts_1C=get_contacts_from_1C($client_data_array, 'contact');
+   if( count($contacts_1C)>0 ) $data_1C['contacts']=$contacts_1C;
+   
+   $companies_1C=get_contacts_from_1C($client_data_array, 'company');
+   if( count($companies_1C)>0 ) $data_1C['companies']=$companies_1C;   
+
+   
+   $contact_custom_field_client_code=array();
+   if( isset($amocrm_1C_integration_contact_custom_field_client_code_1)
+       && is_numeric($amocrm_1C_integration_contact_custom_field_client_code_1) ) {
+          
+       $contact_custom_field_client_code[]=strVal($amocrm_1C_integration_contact_custom_field_client_code_1);  
+   }
+ 
+   if( isset($amocrm_1C_integration_contact_custom_field_client_code_2)
+       && is_numeric($amocrm_1C_integration_contact_custom_field_client_code_2) ) {
+                    
+       $contact_custom_field_client_code[]=strVal($amocrm_1C_integration_contact_custom_field_client_code_2);
+   }
+     
+   if( isset($amocrm_1C_integration_contact_custom_field_client_code_3)
+       && is_numeric($amocrm_1C_integration_contact_custom_field_client_code_2) ) {
+         
+       $contact_custom_field_client_code[]=strVal($amocrm_1C_integration_contact_custom_field_client_code_3);         
+   }
+   
+   $contact_custom_field_client_name=array();
+   if( isset($amocrm_1C_integration_contact_custom_field_client_name_1)
+       && is_numeric($amocrm_1C_integration_contact_custom_field_client_name_1) ) {
+             
+       $contact_custom_field_client_name[]=strVal($amocrm_1C_integration_contact_custom_field_client_name_1);  
+   }
+   
+   if( isset($amocrm_1C_integration_contact_custom_field_client_name_2)
+       && is_numeric($amocrm_1C_integration_contact_custom_field_client_name_2) ) {
+             
+       $contact_custom_field_client_name[]=strVal($amocrm_1C_integration_contact_custom_field_client_name_2);  
+   }
+   
+   if( isset($amocrm_1C_integration_contact_custom_field_client_name_3)
+       && is_numeric($amocrm_1C_integration_contact_custom_field_client_name_3) ) {
+             
+       $contact_custom_field_client_name[]=strVal($amocrm_1C_integration_contact_custom_field_client_name_3);  
+   }   
+      
+   $company_custom_field_client_code=array();
+   if( isset($amocrm_1C_integration_company_custom_field_client_code_1)
+       && is_numeric($amocrm_1C_integration_company_custom_field_client_code_1) ) {
+          
+       $company_custom_field_client_code[]=strVal($amocrm_1C_integration_company_custom_field_client_code_1);         
+   }
+   
+   if( isset($amocrm_1C_integration_company_custom_field_client_code_2)
+       && is_numeric($amocrm_1C_integration_company_custom_field_client_code_2) ) {
+          
+       $company_custom_field_client_code[]=strVal($amocrm_1C_integration_company_custom_field_client_code_2);          
+   }
+             
+   if( isset($amocrm_1C_integration_company_custom_field_client_code_3)
+       && is_numeric($amocrm_1C_integration_company_custom_field_client_code_3) ) {
+
+       $company_custom_field_client_code[]=strVal($amocrm_1C_integration_company_custom_field_client_code_3);      
+   }
+   
+   $company_custom_field_client_name=array();
+   if( isset($amocrm_1C_integration_company_custom_field_client_name_1)
+       && is_numeric($amocrm_1C_integration_company_custom_field_client_name_1) ) {
+          
+       $company_custom_field_client_name[]=strVal($amocrm_1C_integration_company_custom_field_client_name_1);         
+   }   
+   
+   if( isset($amocrm_1C_integration_company_custom_field_client_name_2)
+       && is_numeric($amocrm_1C_integration_company_custom_field_client_name_2) ) {
+          
+       $company_custom_field_client_name[]=strVal($amocrm_1C_integration_company_custom_field_client_name_2);         
+   }
+   
+   if( isset($amocrm_1C_integration_company_custom_field_client_name_3)
+       && is_numeric($amocrm_1C_integration_company_custom_field_client_name_3) ) {
+          
+       $company_custom_field_client_name[]=strVal($amocrm_1C_integration_company_custom_field_client_name_3);         
+   }   
+   
+   
+   if( count($contacts_array)>0
+       || count($companies_array)>0 ) {
+            
+      if( count($contacts_array)>0
+          && array_key_exists('contacts', $data_1C) ) {
+         
+          // set code
+          $result=set_code_1C($http_requester, $contacts_array, 'contact',
+                              $data_1C, $contact_custom_field_client_code,
+                              $contact_custom_field_client_name, $error_status, $LogLineId);
+             
+          if( $error_status===true ) {
+             return($result);
+          }
+             
+      }
+      elseif( count($companies_array)>0
+              && array_key_exists('companies', $data_1C) ) {
+         
+          // set code
+          $result=set_code_1C($http_requester, $companies_array, 'company',
+                              $data_1C, $company_custom_field_client_code,
+                              $company_custom_field_client_name, $error_status, $LogLineId);
+                
+          if( $error_status===true ) {
+             return($result);
+          }          
+         
+      }
+      elseif( count($contacts_array)>0
+              && array_key_exists('companies', $data_1C) ) {
+         
+          // search for company by code, by phone
+          // create company
+          // set code
+         $result=create_contact_from_1C($http_requester, 'company', $data_1C,
+                                        $company_custom_field_client_code, $company_custom_field_client_name,
+                                        null, $error_status, $LogLineId);
+                           
+      }
+      elseif( count($companies_array)>0
+              && array_key_exists('contacts', $data_1C) ) {
+         
+          // search for contact by code, by phone
+          // create contact
+          // set code
+         
+      }
+   
+   }
+   else {
+      
+      if( array_key_exists('contacts', $data_1C) ) {
+         
+         // search for contact by code, phone
+         // create contact
+         // set code, phones, e-mails
+         
+      }
+      elseif( array_key_exists('companies', $data_1C) ) {
+         
+         // search for company by code, phone
+         // create company
+         // set code, phones, e-mails
+         
+      }
+      
+   }
+   
+   return($result);
+}
 
 
+function get_contacts_from_1C($client_data_array, $contact_type) {
+   
+   $result=array();
+   
+   if( !is_array($client_data_array) ) return($result);
+   
+   reset($client_data_array);
+   while( list($key, $value)=each($client_data_array) ) {
+      
+      if( is_array($value)
+        && array_key_exists($contact_type, $value)
+        && is_array($value[$contact_type]) ) {
+        
+        $properties_1C=array();   
+        $contacts_1C=$value[$contact_type];
+        reset($contacts_1C);
+        while( list($key_2, $value_2)=each($contacts_1C) ) {
+           if( is_array($value_2) ) {
+              
+              reset($value_2);
+              while( list($key_3, $value_3)=each($value_2) ) {
+                 
+                  if( $key_3==='phone'
+                      || $key_3==='email' ) {
+                         
+                     $properties_1C[$key_3][]=$value_3;    
+                  }
+                  else {
+                     $properties_1C[$key_3]=$value_3;
+                  }
+                  
+              }
+              
+           }
+        }
+        
+        if( array_key_exists('code_1C', $properties_1C)
+            && array_key_exists('name', $properties_1C)
+            && strlen($properties_1C['code_1C'])>0
+            && strlen($properties_1C['name'])>0 ) {
+               
+            $result[]=$properties_1C;               
+        }
+   
+      }
+      
+   }
+  
+   return($result);
+} 
+
+
+function set_code_1C($http_requester, $contacts_array, $contact_type, $data_1C, $contact_custom_field_code, $contact_custom_field_name, &$error_status=false, $LogLineId='') {
+   
+   global $amocrm_1C_integration_contact_custom_field_principal_client;
+   global $amocrm_1C_integration_company_custom_field_principal_client;
+   
+   $result=array();
+   
+    // set code
+    $contact_id='';
+    $contact_name='';
+    reset($contacts_array);
+    while( list($key, $value)=each($contacts_array) ) {
+       if( is_numeric($key) ) {
+          $contact_id=strVal($key);
+          $contact_name=$value['name'];
+          break;
+       }
+    }
+    
+    $data_type='contacts';
+    if( $contact_type==='company' ) $data_type='companies';
+    
+    $contacts_1C=$data_1C[$data_type];
+              
+    if( is_numeric($contact_id)
+        && count($contact_custom_field_code)>0
+        && count($contact_custom_field_name)>0 ) {
+           
+       $parameters=array();
+       $parameters['id']=$contact_id;
+       $parameters['type']=$contact_type;
+       
+       $updated_fields=array();
+       
+       for($i=0; $i<count($contacts_1C); $i++ ) {
+          
+          if( count($contact_custom_field_code)<=$i ) continue;
+          if( count($contact_custom_field_name)<=$i ) continue;               
+          
+          $updated_field_code=$contact_custom_field_code[$i];
+          $updated_fields[$updated_field_code]=array('id'=>$updated_field_code, 'values'=>array(array('value'=>$contacts_1C[$i]['code_1C'])));
+          
+          $updated_field_code=$contact_custom_field_name[$i];
+          $updated_fields[$updated_field_code]=array('id'=>$updated_field_code, 'values'=>array(array('value'=>$contacts_1C[$i]['name'])));                
+       }
+       
+       $custom_field_principal_client=$amocrm_1C_integration_contact_custom_field_principal_client;
+       if( $contact_type==='company' ) {
+          $custom_field_principal_client=$amocrm_1C_integration_company_custom_field_principal_client;
+       }
+       
+       if( isset($custom_field_principal_client)
+           && is_numeric($custom_field_principal_client)
+           && count($contacts_1C)>0 ) {
+              
+          $updated_field_code=strVal($custom_field_principal_client);
+          $updated_fields[$updated_field_code]=array('id'=>$updated_field_code, 'values'=>array(array('value'=>'1')));                    
+       }
+       
+       $error_status=false;
+       if( count($updated_fields)>0 ) {
+         
+         if( $contact_type==='company' ) { 
+            update_company_info($parameters, $updated_fields, $http_requester, $error_status);
+         }
+         else {
+            update_contact_info($parameters, $updated_fields, $http_requester, null, null, null, null, null, $error_status);
+         }
+         
+       }
+       
+       if( $error_status===false ) {
+          
+          if( count($updated_fields)>0 ) {
+             $result['contact_id']=$contact_id;
+             $result['contact_name']=$contact_name;
+          }
+          
+       }
+       else {
+          write_log('set_code_1C: update contact request failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+          return($result);
+       }
+       
+    }
+    else {
+       $error_message='set_code_1C: some parameters are not defined ';
+       $error_message.='contact_id='.$contact_id.' ';
+       $error_message.='number custom fields code='.count($contact_custom_field_code).' ';
+       $error_message.='number custom fields name='.count($contact_custom_field_name).' ';
+       
+       write_log($error_message, $log_file, 'REG_CALL '.$LogLineId);
+       
+       $error_status=true;
+       
+       return($result);
+    }   
+   
+
+    return($result);
+}
+
+
+function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custom_field_client_code,  $custom_field_client_name, $addition_fields=array(), &$error_status=false, $LogLineId='') {
+   
+    global $custom_field_phone_id;
+    global $custom_field_phone_enum;
+    global $custom_field_email_id;
+    global $custom_field_email_enum;
+    global $amocrm_1C_integration_contact_custom_field_principal_client;
+    global $amocrm_1C_integration_company_custom_field_principal_client;
+   
+    $result=array();   
+   
+    // search for contact by code, by phone
+    // create contact
+    // set code, contact info
+    $contact_1C_data=array();
+   
+    $code_1C='';
+    $name_1C='';
+    $phone_1C_array=array();
+    
+    $contacts_1C=array();
+    if( $contact_type==='contact' ) {
+       $contacts_1C=$data_1C['contacts'];
+    }
+    elseif( $contact_type==='company' ) {
+       $contacts_1C=$data_1C['companies'];
+    }
+           
+    if( is_array($contacts_1C)
+        && count($contacts_1C)>0 ) {
+    
+        reset($contacts_1C);
+        $contact_1C_data=current($contacts_1C);
+        
+        if( is_array($contact_1C_data)
+            && array_key_exists('code_1C', $contact_1C_data)
+            && array_key_exists('name', $contact_1C_data) ) {
+               
+            $code_1C=$contact_1C_data['code_1C'];
+            $name_1C=$contact_1C_data['name'];
+        }
+        
+        if( is_array($contact_1C_data)
+            && array_key_exists('phone', $contact_1C_data) ) {
+               
+            $phone_1C_array=$contact_1C_data['phone'];  
+        }
+    }
+    
+    $phone_1C_main='';
+    if( is_array($phone_1C_array)
+        && count($phone_1C_array)>0 ) {
+       
+       reset($phone_1C_array);    
+       while( list($key, $value)=each($phone_1C_array) ) {
+          $phone_1C_tmp=remove_symbols($value);
+          $phone_1C_tmp=substr($phone_1C_tmp, -10);
+          
+          if( strlen($phone_1C_tmp)>=10 ) {
+             $phone_1C_main=$phone_1C_tmp;
+             break;
+          }
+       }
+    }
+    
+    // search by code    
+    $search_by_code_performed=false;
+    $contacts_found=array();
+    if( strlen($code_1C)>=3
+        && count($custom_field_client_code)>0 ) {
+       
+      $parameters=array();
+      $parameters['type']=$contact_type;
+      $parameters['query']=$code_1C;
+      
+      $contacts_found=contact_search_filtered($parameters, $http_requester, $code_1C, $custom_field_client_code, $error_status);
+      $search_by_code_performed=true;
+    }
+    
+    if( $error_status===true ) {
+       write_log('create_contact_from_1C: contact_search_filtered failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+       return($result);
+    }
+    
+    if( count($contacts_found)>0 ) {
+       
+       reset($contacts_found);
+       $contact_current=current($contacts_found);
+       
+       $result[$contact_type.'_id']=$contact_current['id'];
+       $result[$contact_type.'_name']=$contact_current['name'];
+       return($result);
+    }
+    
+    // search by phone
+    $custom_field_client_phone=array();
+    if( isset($custom_field_phone_id)
+        && is_numeric($custom_field_phone_id) ) {
+           
+        $custom_field_client_phone[]=$custom_field_phone_id;   
+    }
+    
+    $search_by_phone_performed=false;
+    $contacts_found=array();
+    if( strlen($phone_1C_main)>=10
+        && count($custom_field_client_phone)>0 ) {
+       
+      $parameters=array();
+      $parameters['type']=$contact_type;
+      $parameters['query']=$phone_1C_main;            
+       
+      $contacts_found=contact_search_filtered($parameters, $http_requester, $phone_1C_main, $custom_field_client_phone, $error_status);
+      $search_by_phone_performed=true;
+    }
+    
+    if( $error_status===true ) {
+       write_log('create_contact_from_1C: contact_search_filtered failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+       return($result);
+    }
+    
+    if( count($contacts_found)>0 ) {
+       
+       reset($contacts_found);
+       $contact_current=current($contacts_found);
+       
+       $result[$contact_type.'_id']=$contact_current['id'];
+       $result[$contact_type.'_name']=$contact_current['name'];
+       return($result);
+    }
+    
+    if( $search_by_code_performed===true
+        && $search_by_phone_performed===true ) {
+         
+        // create
+        if( $contact_type==='contact' ) {
+            
+            $result=create_contact_from_1C_data($http_requester, $contact_type, $contacts_1C,
+                                                $custom_field_client_code, $custom_field_client_name, $error_status, $LogLineId);
+            
+            if( $error_status===true ) {
+                write_log('create_contact_from_1C: create_contact_from_1C_data failed, contact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+                return($result);
+            }            
+           
+        }
+        elseif( $contact_type==='company' ) {
+           
+            $result=create_contact_from_1C_data($http_requester, $contact_type, $contacts_1C,
+                                                $custom_field_client_code, $custom_field_client_name, $error_status, $LogLineId);
+            
+            if( $error_status===true ) {
+                write_log('create_contact_from_1C: create_contact_from_1C_data failed, contact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+                return($result);
+            }             
+                   
+        }
+        
+    }  
+   
+   
+   return($result);   
+}
+
+
+function create_contact_from_1C_data($http_requester, $contact_type, $contacts_1C,
+                                     $custom_field_client_code, $custom_field_client_name, $error_status=false, $LogLineId='') {
+   
+   global $amocrm_1C_integration_contact_custom_field_principal_client;
+   global $amocrm_1C_integration_company_custom_field_principal_client;
+                                        
+   $result=array();
+   
+   $contact_1C_data=array();
+   if( is_array($contacts_1C)
+       && count($contacts_1C)>0 ) {
+       
+       reset($contacts_1C);   
+       $contact_1C_data=current($contacts_1C);   
+   }
+   
+   $contact_name='';
+   if( is_array($contact_1C_data)
+       && array_key_exists('name', $contact_1C_data) ) {
+          
+       $contact_name=$contact_1C_data['name'];   
+   }
+      
+   write_log('create_contact_from_1C_data: create contact, contact_type='.$contact_type.' name='.$contact_name, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+   
+   $new_contact_data=array();
+   
+   reset($contact_1C_data);
+   while( list($key, $value)=each($contact_1C_data) ) {
+      
+      if( $key!=='name'
+          && $key!=='phone'
+          && $key!=='email' ) {
+      
+          continue;   
+      }
+      
+      $new_contact_data[$key]=$value;
+   }
+               
+   $count_custom_fileds=min(count($contacts_1C), count($custom_field_client_code), count($custom_field_client_name));
+   for($i=0; $i<$count_custom_fileds; $i++) {
+      
+      if( is_array($contacts_1C[$i])
+          && array_key_exists('code_1C', $contacts_1C[$i]) ) {
+             
+          $new_contact_data[$custom_field_client_code[$i]]=$contacts_1C[$i]['code_1C'];
+      }
+      
+      if( is_array($contacts_1C[$i])
+          && array_key_exists('name', $contacts_1C[$i]) ) {
+             
+          $new_contact_data[$custom_field_client_name[$i]]=$contacts_1C[$i]['name'];
+      }
+      
+   }
+   
+   $field_principal_client=null;
+   if( $contact_type==='contact' ) {
+      $field_principal_client=$amocrm_1C_integration_contact_custom_field_principal_client;
+   }
+   elseif( $contact_type==='company' ) {
+      $field_principal_client=$amocrm_1C_integration_company_custom_field_principal_client;
+   }
+      
+   if( isset($field_principal_client)
+       && is_numeric($field_principal_client)
+       && $count_custom_fileds>0 ) {
+          
+       $new_contact_data[$field_principal_client]='1';   
+   }
+   
+   $contact_id='';
+   if( $contact_type==='contact' ) {
+      $contact_id=create_contact($http_requester, $new_contact_data, $error_status);
+   }
+   elseif( $contact_type==='company' ) {
+      $contact_id=create_company($http_requester, $new_contact_data, $error_status);
+   }
+   
+   if( $error_status===true ) {
+       write_log('create_contact_from_1C_data: create_contact failed, contact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+       write_log('create_contact_from_1C_data: create_contact failed, cintact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+       return($result);
+   }
+   
+   $result[$contact_type.'_id']=$contact_id;
+   $result[$contact_type.'_name']=$contact_name;
+   
+   return($result);
+}
 
 ?>
