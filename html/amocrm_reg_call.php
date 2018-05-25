@@ -2,7 +2,7 @@
 
    date_default_timezone_set('Etc/GMT-3');
 
-   
+  
    $settigs_found=false;
    if( isset($_REQUEST['param_login'])
       && strlen($_REQUEST['param_login'])>0 ) {
@@ -277,6 +277,7 @@
        && array_key_exists('contact', $created_contact_data) ) {
        
        $created_contact_data_array=$created_contact_data['contact'];
+
        if( array_key_exists('id', $created_contact_data_array) ) {   
           $client_contact=strVal($created_contact_data_array['id']);
        }
@@ -288,12 +289,29 @@
        if( array_key_exists('contact_created', $created_contact_data_array) ) {
           $contact_created=$created_contact_data_array['contact_created'];
        }
+       
+       if( count($created_contact_data_array)>0
+           && array_key_exists('id', $created_contact_data_array)
+           && is_numeric($created_contact_data_array['id'])
+           && !in_array( intVal($created_contact_data_array['id']), $contacts_array) ) {
+           
+           $created_contact_id=$created_contact_data_array['id'];   
+           $created_contact_name='';
+           if( array_key_exists('name', $created_contact_data_array) ) {
+               $created_contact_name=$created_contact_data_array['name'];             
+           }
+           
+           $created_contact_array=array( intVal($created_contact_id)=>array('name'=>$created_contact_name) );
+           $contacts_array=$created_contact_array+$contacts_array;   
+       }
+       
    }
    
    if( is_array($created_contact_data)
       && array_key_exists('company', $created_contact_data) ) {
          
       $created_company_data_array=$created_contact_data['company'];
+      
       if( array_key_exists('id', $created_company_data_array) ) {
          $client_company=strVal($created_company_data_array['id']);
       }
@@ -301,10 +319,25 @@
       if( array_key_exists('name', $created_company_data_array) ) {
          $client_company_name=strVal($created_company_data_array['name']);
       }
-          
+
+       if( count($created_company_data_array)>0
+           && array_key_exists('id', $created_company_data_array)
+           && is_numeric($created_company_data_array['id'])
+           && !in_array( intVal($created_company_data_array['id']), $companies_array) ) {
+           
+           $created_company_id=$created_company_data_array['id'];   
+           $created_company_name='';
+           if( array_key_exists('name', $created_company_data_array) ) {
+               $created_company_name=$created_company_data_array['name'];             
+           }
+           
+           $created_company_array=array( intVal($created_company_id)=>array('name'=>$created_company_name) );
+           $companies_array=$created_company_array+$companies_array;   
+       }      
+      
    }
    
-   write_log('After contact creation: contact_id='.$client_contact.' company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);
+   write_log('After contact creation function: contact_id='.$client_contact.' company_id='.$client_company, $amocrm_log_file, 'REG_CALL '.$LogLineId);
 
    
    // Create call note
@@ -714,7 +747,7 @@ function get_companies_local(&$http_requester, $client_phone, &$error_status=fal
    $error_status=false;
    $companies_array=array();
    if( strlen($parsed_client_phone)>0 ) {
-      $companies_array=get_company_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+      $companies_array=get_companies_info($parameters, $http_requester, null, null, null, null, null, $error_status);
    }
    
    if( $error_status===true ) {
@@ -899,7 +932,8 @@ function get_leads_local(&$http_requester, $contacts_array, $companies_array, $t
          reset($contacts_array);
          while( list($key, $value)=each($contacts_array) ) {
             
-            if( strlen($value['company_id'])>0
+            if(array_key_exists('company_id', $value) 
+               && strlen($value['company_id'])>0
                && is_numeric($value['company_id'])
                && intval($value['company_id'])>0 ) $companies_array_search_lead[ intval($value['company_id']) ]=strval($value['company_id']);
          }

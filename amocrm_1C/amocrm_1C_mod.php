@@ -72,24 +72,42 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
    $client_data_array=get_client_data_from_1C($contact_data, $http_requester->{'log_file'}, $LogLineId);
     
    $request_status=false;
+   $contact_found=false;
+   $company_found=false;
    
    reset($client_data_array);   
    while( list($key, $value)=each($client_data_array) ) {
       
-      if( is_array($value)
-          && array_key_exists('result', $value) ) {
-      
-          if( $value['result']==='success' ) {
+      if( is_array($value) ) {
+         
+          if( array_key_exists('result', $value)
+              && $value['result']==='success' ) {
+                 
              $request_status=true;
-             write_log('amocrm_1C_create_contact: use 1C data ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
-             break;
           }
+          
+          if( array_key_exists('contact', $value)
+              && is_array($value['contact']) ) {
+                 
+             $contact_found=true;   
+          }
+          
+          if( array_key_exists('company', $value)
+              && is_array($value['company']) ) {
+                 
+             $company_found=true;   
+          }          
+          
       }
  
    }
    
    $create_contact_without_integration_1C=false;
-   if( $request_status===true ) {
+   if( $request_status===true
+       && ($contact_found===true
+           || $company_found===true) ) {
+      
+      write_log('amocrm_1C_create_contact: use 1C data ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
       
       // create contact and company
       $client_company_array=create_contact_company_using_1C_data($http_requester, $client_data_array, $contacts_array, $client_companies_array, $companies_array, $error_status, $LogLineId);
@@ -853,6 +871,8 @@ function create_contact_company_using_1C_data($http_requester, $client_data_arra
       if( count($contacts_array)>0
           && array_key_exists('contacts', $data_1C) ) {
          
+          write_log('create_contact_company_using_1C_data: contacts amo='.count($contacts_array).' contacts 1C='.count($data_1C['contacts']), $http_requester->log_file, 'REG_CALL '.$LogLineId);             
+             
           // set code
           $result=set_code_1C($http_requester, $contacts_array, 'contact',
                               $data_1C, $contact_custom_field_client_code,
@@ -865,7 +885,9 @@ function create_contact_company_using_1C_data($http_requester, $client_data_arra
       }
       elseif( count($companies_array)>0
               && array_key_exists('companies', $data_1C) ) {
-         
+
+          write_log('create_contact_company_using_1C_data: companies amo='.count($companies_array).' companies 1C='.count($data_1C['companies']), $http_requester->log_file, 'REG_CALL '.$LogLineId);                 
+                 
           // set code
           $result=set_code_1C($http_requester, $companies_array, 'company',
                               $data_1C, $company_custom_field_client_code,
@@ -878,7 +900,9 @@ function create_contact_company_using_1C_data($http_requester, $client_data_arra
       }
       elseif( count($contacts_array)>0
               && array_key_exists('companies', $data_1C) ) {
-         
+
+          write_log('create_contact_company_using_1C_data: contacts amo='.count($contacts_array).' companies 1C='.count($data_1C['companies']), $http_requester->log_file, 'REG_CALL '.$LogLineId);                 
+                 
           // search for company by code, by phone
           // create company
           // set code
@@ -889,28 +913,42 @@ function create_contact_company_using_1C_data($http_requester, $client_data_arra
       }
       elseif( count($companies_array)>0
               && array_key_exists('contacts', $data_1C) ) {
-         
+
+          write_log('create_contact_company_using_1C_data: companies amo='.count($companies_array).' contacts 1C='.count($data_1C['contacts']), $http_requester->log_file, 'REG_CALL '.$LogLineId);                 
+                 
           // search for contact by code, by phone
           // create contact
           // set code
-         
+         $result=create_contact_from_1C($http_requester, 'contact', $data_1C,
+                                        $contact_custom_field_client_code, $contact_custom_field_client_name,
+                                        null, $error_status, $LogLineId);         
       }
    
    }
    else {
       
       if( array_key_exists('contacts', $data_1C) ) {
+
+          write_log('create_contact_company_using_1C_data: nothing in amo, contacts 1C='.count($data_1C['contacts']), $http_requester->log_file, 'REG_CALL '.$LogLineId);         
          
          // search for contact by code, phone
          // create contact
          // set code, phones, e-mails
+        $result=create_contact_from_1C($http_requester, 'contact', $data_1C,
+                                        $contact_custom_field_client_code, $contact_custom_field_client_name,
+                                        null, $error_status, $LogLineId);         
          
       }
       elseif( array_key_exists('companies', $data_1C) ) {
+ 
+          write_log('create_contact_company_using_1C_data: nothing in amo, companies 1C='.count($data_1C['companies']), $http_requester->log_file, 'REG_CALL '.$LogLineId);         
          
          // search for company by code, phone
          // create company
          // set code, phones, e-mails
+        $result=create_contact_from_1C($http_requester, 'company', $data_1C,
+                                        $company_custom_field_client_code, $company_custom_field_client_name,
+                                        null, $error_status, $LogLineId);         
          
       }
       
@@ -969,7 +1007,7 @@ function get_contacts_from_1C($client_data_array, $contact_type) {
    }
   
    return($result);
-} 
+}
 
 
 function set_code_1C($http_requester, $contacts_array, $contact_type, $data_1C, $contact_custom_field_code, $contact_custom_field_name, &$error_status=false, $LogLineId='') {
@@ -1046,8 +1084,8 @@ function set_code_1C($http_requester, $contacts_array, $contact_type, $data_1C, 
        if( $error_status===false ) {
           
           if( count($updated_fields)>0 ) {
-             $result['contact_id']=$contact_id;
-             $result['contact_name']=$contact_name;
+             $result[$contact_type.'_id']=$contact_id;
+             $result[$contact_type.'_name']=$contact_name;
           }
           
        }
@@ -1059,11 +1097,11 @@ function set_code_1C($http_requester, $contacts_array, $contact_type, $data_1C, 
     }
     else {
        $error_message='set_code_1C: some parameters are not defined ';
-       $error_message.='contact_id='.$contact_id.' ';
+       $error_message.=$contact_type.'_id='.$contact_id.' ';
        $error_message.='number custom fields code='.count($contact_custom_field_code).' ';
        $error_message.='number custom fields name='.count($contact_custom_field_name).' ';
        
-       write_log($error_message, $log_file, 'REG_CALL '.$LogLineId);
+       write_log($error_message, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
        
        $error_status=true;
        
@@ -1202,6 +1240,16 @@ function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custo
        
        $result[$contact_type.'_id']=$contact_current['id'];
        $result[$contact_type.'_name']=$contact_current['name'];
+       
+       $contact_for_code_update_array=array();
+       $contact_for_code_update_array[intVal($contact_current['id'])]=array('name'=>$contact_current['name']);
+       
+       set_code_1C($http_requester, $contact_for_code_update_array, $contact_type, $data_1C, $custom_field_client_code, $custom_field_client_name, $error_status, $LogLineId);
+       
+       if( $error_status===true ) {
+          write_log('create_contact_from_1C: set_code_1C failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+       }   
+       
        return($result);
     }
     
