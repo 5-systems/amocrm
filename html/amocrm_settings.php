@@ -37,10 +37,8 @@
   $custom_field_user_phone='1779061';
   $custom_field_first_called_number="1781769";
   
-  // add
   $custom_field_comment='1780723';
   $custom_field_web_site='1783029';
-  // add
 
   $custom_field_do_not_create_lead='1779705';
   $custom_field_address_type='1775865';
@@ -109,11 +107,10 @@
   // Put custom fields id, which shoud be filled in leads
   // Names of fields should be the same, as keys in $_REQUEST
   $additional_custom_fields=array();
+
+  //$_REQUEST['CREATED_BY_5SYSTEMS']='Да';
+  //$additional_custom_fields['CREATED_BY_5SYSTEMS']=array('id'=>'1787433', 'element_type'=>'lead');
   
-  // Roistat fields
-  //$additional_custom_fields['X_ROISTAT']=array('id'=>'1783339', 'element_type'=>'lead');
-  //$additional_custom_fields['X_ROISTAT_MARKER']=array('id'=>'1783343', 'element_type'=>'lead');
- 
   // amocrm_1C integration
   $amocrm_1C_integration_used=false;
   $amocrm_1C_integration_web_service_url='http://127.0.0.1:8080/database_url/ws/wsamointegration.1cws?wsdl';
