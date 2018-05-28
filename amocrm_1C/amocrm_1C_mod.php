@@ -2,7 +2,7 @@
 
 function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $contacts_array=array(), $companies_array=array(), &$error_status=false, $LogLineId='') {
    
-   global $amocrm_1C_integration_web_service_url;
+   global $amocrm_1C_integration_web_service_request_url;
    
    $result=array();
    
@@ -64,7 +64,7 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
    // code_1C of client is not defined
       
    // Request to 1C to define code_1C
-   if( !isset($amocrm_1C_integration_web_service_url) ) {  
+   if( !isset($amocrm_1C_integration_web_service_request_url) ) {  
        write_log('amocrm_1C_create_contact: amocrm_1C_integration_web_service_url constant not defined ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
        return($result);
    }
@@ -165,7 +165,7 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
 
 function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
    
-   global $amocrm_1C_integration_web_service_url;
+   global $amocrm_1C_integration_web_service_request_url;
    global $amocrm_1C_integration_web_service_request_timeout;
    
    $result=array();
@@ -214,7 +214,7 @@ function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
    
    $headers=array('Content-Type:application/x-www-form-urlencoded');
    
-   $request_url=$amocrm_1C_integration_web_service_url;
+   $request_url=$amocrm_1C_integration_web_service_request_url;
    $request_timeout=$amocrm_1C_integration_web_service_request_timeout;
    if( !isset($request_timeout)
        || !is_numeric($request_timeout) ) {
