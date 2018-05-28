@@ -1,7 +1,7 @@
 <?php
 
    date_default_timezone_set('Etc/GMT-3');
-
+   
    
    $settigs_found=false;
    if( isset($_REQUEST['param_login'])
@@ -265,8 +265,18 @@
    $contact_data['user_id']=$user_id;
    
    $error_status=false;
-   $created_contact_data=create_contact_local($http_requester, $contact_data, $user_id,
-                                              $contacts_array, $companies_array, $error_status, $LogLineId);
+   $created_contact_data=array();
+   if( !(strlen($user_id)===0
+         && strlen($user_phone)>0) ) {
+            
+      $created_contact_data=create_contact_local($http_requester, $contact_data, $user_id,
+                                                 $contacts_array, $companies_array, $error_status, $LogLineId);
+   }
+   else {
+      write_log('create_contact_local: user_id not found, user_phone is given, do not create contact ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+      write_log('Finish ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+      exit;
+   }
    
    if( $error_status===true ) {
       write_log('create_contact_local: create contact failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
@@ -794,24 +804,20 @@ function create_contact_default_local(&$http_requester, $contact_data, $user_id,
    if( count($contacts_array)===0
       && count($companies_array)===0 ) {
          
-      // Do not create contact if unsorted and if user does not participate in amocrm
-      if( strlen($user_id)>0 ) {
-         $created_contact=create_contact($http_requester, $contact_data, $error_status);
-         
-         if( strlen($created_contact)>0
-            && is_numeric($created_contact) ) {
-               
-               $result['contact']=array();
-               $result['contact']['id']=strVal($created_contact);
-               
-               $result['contact']['name']='';
-               if( array_key_exists('name', $contact_data) ) {
-                  $result['contact']['name']=$contact_data['name'];
-               }
-            }
-            
-      }
+      $created_contact=create_contact($http_requester, $contact_data, $error_status);
       
+      if( strlen($created_contact)>0
+         && is_numeric($created_contact) ) {
+            
+            $result['contact']=array();
+            $result['contact']['id']=strVal($created_contact);
+            
+            $result['contact']['name']='';
+            if( array_key_exists('name', $contact_data) ) {
+               $result['contact']['name']=$contact_data['name'];
+            }
+       }
+                  
    }
    
    return($result);  
