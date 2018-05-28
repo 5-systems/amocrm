@@ -7,13 +7,14 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
    $result=array();
    
    // Call is missed or user does not work with amoCRM
+   /*
    if( strlen($user_id)===0
        || !is_numeric($user_id)
        || intVal($user_id)<=0 ) {
           
        return($result);          
    }
-
+   */
    
    // Define client and company if code_1C is set
    $contact_id=null;
@@ -1241,14 +1242,34 @@ function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custo
        $result[$contact_type.'_id']=$contact_current['id'];
        $result[$contact_type.'_name']=$contact_current['name'];
        
-       $contact_for_code_update_array=array();
-       $contact_for_code_update_array[intVal($contact_current['id'])]=array('name'=>$contact_current['name']);
+       $code_1C_is_set=false;
+       $contact_current_array=array( intVal($contact_current['id'])=>$contact_current );
+       reset($custom_field_client_code);
+       while( list($key, $value)=each($custom_field_client_code) ) {
+         $value_array=get_field_values($contact_current_array, $value);
+         
+         if( is_array($value_array)
+             && count($value_array)>0 ) {
+                
+            $code_1C_is_set=true;
+            write_log('create_contact_from_1C: code_1C is present in '.$contact_type.'_id='.$contact_current['id'], $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+         }
+       }
        
-       set_code_1C($http_requester, $contact_for_code_update_array, $contact_type, $data_1C, $custom_field_client_code, $custom_field_client_name, $error_status, $LogLineId);
+       if( $code_1C_is_set===false ) {
+          
+          write_log('create_contact_from_1C: set code_1C for '.$contact_type.'_id='.$contact_current['id'], $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+          
+          $contact_for_code_update_array=array();
+          $contact_for_code_update_array[intVal($contact_current['id'])]=array('name'=>$contact_current['name']);
+          
+          set_code_1C($http_requester, $contact_for_code_update_array, $contact_type, $data_1C, $custom_field_client_code, $custom_field_client_name, $error_status, $LogLineId);
+          
+          if( $error_status===true ) {
+             write_log('create_contact_from_1C: set_code_1C failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
+          }
        
-       if( $error_status===true ) {
-          write_log('create_contact_from_1C: set_code_1C failed ', $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
-       }   
+       }
        
        return($result);
     }

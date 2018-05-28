@@ -464,30 +464,25 @@
       }
       elseif( strlen($user_phone)===0 ) {
           
-          // Create unsorted
-          $phone_from=( $OutcomingCall==='1' ? $user_phone : $phone_prefix_presentation.$parsed_client_phone );
-          $phone_to=( $OutcomingCall==='1' ? $phone_prefix_presentation.$parsed_client_phone : $user_phone );
-          
-          $additional_custom_fields_values=$_REQUEST;
-          
-          $unsorted_id=create_unsorted_local($http_requester,
-                                             $phone_from, $phone_to, 
-                                             $user_id, $client_contact,
-                                             $client_contact_name, $client_company,
-                                             $client_company_name, $amocrm_log_file,
-                                             $OutcomingCall, $MissedCall, $FromWeb,
-                                             $FirstCalledNumber, $client_web_request,
-                                             $client_web_site, $ContactInfo, $user_pipeline_id,
-                                             $additional_custom_fields, $additional_custom_fields_values);
+         $additional_custom_fields_values=$_REQUEST;
 
-          
-          if( strlen($unsorted_id)>0 ) {
-              $unsorted_created=true;
-          }
-          else {
-              write_log('create_unsorted_local failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
-              exit;
-          }
+         // Create lead
+         $lead_id=create_lead_local($http_requester, $user_id,
+                                    $client_contact_name, $client_company,
+                                    $client_company_name, $amocrm_log_file,
+                                    $OutcomingCall, $parsed_client_phone,
+                                    $MissedCall, $FromWeb, $FirstCalledNumber,
+                                    $client_web_request, $client_web_site, $user_pipeline_status_id,
+                                    $additional_custom_fields, $additional_custom_fields_values);
+
+         if( strlen($lead_id)>0 ) {
+            $lead_created=true;
+         }
+         else {
+            write_log('create_lead_local(user_phone is empty) failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+            exit;
+         }
+    
       }
       
 
