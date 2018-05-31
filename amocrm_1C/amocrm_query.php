@@ -167,6 +167,8 @@ function change_status($lead_fields, $http_requester, &$result_array=array()) {
 function create_task($lead_fields, $http_requester, &$result_array=array()) {
    
    $result=false;
+
+   change_status($lead_fields, $http_requester, $result_array);  
    
    return($result);
    
