@@ -390,7 +390,7 @@
           
       $call_note_id=create_note_call($http_requester, null, $client_contact, $client_company,
                                       $CallId, $parsed_client_phone, $call_unix_time, $call_status, $call_result,
-                                      0, $outcoming_call, 0, $user_id, $record_link, null, $error_status);
+                                      0, $outcoming_call, $user_id, $user_id, $record_link, null, $error_status);
    }
    
    if( $error_status===true ) {
