@@ -340,11 +340,19 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
    global $amocrm_1C_integration_contact_custom_field_client_code_1;
    global $amocrm_1C_integration_contact_custom_field_client_code_2;
    global $amocrm_1C_integration_contact_custom_field_client_code_3;
+   global $amocrm_1C_integration_contact_custom_field_client_name_1;
+   global $amocrm_1C_integration_contact_custom_field_client_name_2;
+   global $amocrm_1C_integration_contact_custom_field_client_name_3;   
+   
    global $amocrm_1C_integration_contact_custom_field_principal_client;
    
    global $amocrm_1C_integration_company_custom_field_client_code_1;
    global $amocrm_1C_integration_company_custom_field_client_code_2;
    global $amocrm_1C_integration_company_custom_field_client_code_3;
+   global $amocrm_1C_integration_company_custom_field_client_name_1;
+   global $amocrm_1C_integration_company_custom_field_client_name_2;
+   global $amocrm_1C_integration_company_custom_field_client_name_3;
+   
    global $amocrm_1C_integration_company_custom_field_principal_client;  
    
    global $custom_field_phone_id;
@@ -427,6 +435,11 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
       $result=false;      
    }
    
+   $name_1C='';
+   if( array_key_exists('name_1C', $lead_fields) ) {        
+      $name_1C=strVal($lead_fields['name_1C']);
+   }   
+   
     
    $contacts_info=array();
    
@@ -473,21 +486,23 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
    
    $code_fields=array();
    if( $contact_type==='contact' ) {
-      $code_fields[]=$amocrm_1C_integration_contact_custom_field_client_code_1;
-      $code_fields[]=$amocrm_1C_integration_contact_custom_field_client_code_2;
-      $code_fields[]=$amocrm_1C_integration_contact_custom_field_client_code_3;      
+      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_1, $amocrm_1C_integration_contact_custom_field_client_name_1);
+      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_2, $amocrm_1C_integration_contact_custom_field_client_name_2);
+      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_3, $amocrm_1C_integration_contact_custom_field_client_name_3);      
    }
    elseif( $contact_type==='company' ) {
-      $code_fields[]=$amocrm_1C_integration_company_custom_field_client_code_1;
-      $code_fields[]=$amocrm_1C_integration_company_custom_field_client_code_2;
-      $code_fields[]=$amocrm_1C_integration_company_custom_field_client_code_3;
+      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_1, $amocrm_1C_integration_company_custom_field_client_name_1);
+      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_2, $amocrm_1C_integration_company_custom_field_client_name_2);
+      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_3, $amocrm_1C_integration_company_custom_field_client_name_3);
    }
    
    $code_fields_tmp=array();
    reset($code_fields);
    while( list($key, $value)=each($code_fields) ) {
-      if( isset($value)
-          && is_numeric($value) ) {
+      if( isset($value[0])
+          && is_numeric($value[0])
+          && isset($value[1])
+          && is_numeric($value[1]) ) {
              
           $code_fields_tmp[]=$value;   
       }
@@ -496,10 +511,11 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
    $code_fields=$code_fields_tmp;
    
    $field_code_1C_empty='';
+   $field_name_1C_empty='';
    $code_1C_found=false;
    reset($code_fields);
    while( list($key, $value)=each($code_fields) ) {
-      $client_code_1C_value=get_code_1C_from_response($contacts_info, $value);
+      $client_code_1C_value=get_code_1C_from_response($contacts_info, $value[0]);
       
       if( $client_code_1C_value===$code_1C ) {
          $code_1C_found=true;
@@ -508,7 +524,8 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
       if( strlen($client_code_1C_value)===0
           && strlen($field_code_1C_empty)===0 ) {
              
-         $field_code_1C_empty=strVal($value);
+         $field_code_1C_empty=strVal($value[0]);
+         $field_name_1C_empty=strVal($value[1]);
       }
    }
    
@@ -524,6 +541,7 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
           
           $updated_fields=array();
           $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
+          $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
           
           update_contact_info($parameters, $updated_fields, $http_requester,
                               null, null, null, null, null, $error_status);
