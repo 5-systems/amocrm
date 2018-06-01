@@ -816,6 +816,8 @@ function create_contact_default_local(&$http_requester, $contact_data, $user_id,
             if( array_key_exists('name', $contact_data) ) {
                $result['contact']['name']=$contact_data['name'];
             }
+            
+            $result['contact_created']=true;
        }
                   
    }
