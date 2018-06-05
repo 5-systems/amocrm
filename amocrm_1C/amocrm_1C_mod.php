@@ -206,6 +206,12 @@ function get_client_data_from_1C($contact_data, $log_file='', $LogLineId='') {
    
    $common_info=array();
    
+   if( is_array($_REQUEST)
+       && array_key_exists('param_login', $_REQUEST) ) {
+          
+      $common_info['param_login']=$_REQUEST['param_login'];
+   }
+   
    $common_info['method']='get_client_data';
    if( count($phone_array)>0 ) $common_info["phone"]=$phone_array;
    if( count($email_array)>0 ) $common_info["email"]=$email_array;

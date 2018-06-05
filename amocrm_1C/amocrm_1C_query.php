@@ -2,8 +2,6 @@
 
 	header('Content-Type: text/html; charset=utf-8');
 
-  // Uncomment to use a custom settins file
-   //$_REQUEST['param_login']='5systems';
 
    $current_dir_path=getcwd();
    $current_dir_path=rtrim($current_dir_path, '/').'/';
