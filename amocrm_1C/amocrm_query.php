@@ -362,6 +362,7 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
    $result=true;
 
    $leads_info=null;
+   $lead_id='';
    $contact_id='';
    $company_id='';
    if( array_key_exists('id', $lead_fields)
@@ -440,14 +441,65 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
    $name_1C='';
    if( array_key_exists('name_1C', $lead_fields) ) {        
       $name_1C=strVal($lead_fields['name_1C']);
+   }
+   
+   if( strlen($name_1C)===0 ) {
+      $result_array['error']='add_client_code: Не указано наименование контрагента в 1С ';
+      write_log($result_array['error'], $http_requester->log_file, 'AMO_QUERY');
+      $result=false;      
    }   
+   
+   $phone_1C=array();
+   if( array_key_exists('phone_1C', $lead_fields) ) {        
+      $phone_1C=$lead_fields['phone_1C'];
+   }
+   
+   $email_1C=array();
+   if( array_key_exists('email_1C', $lead_fields) ) {        
+      $email_1C=$lead_fields['email_1C'];
+   }   
+
+   $code_fields=array();
+   
+   $custom_field_client_code=array();
+   $custom_field_client_name=array();
+   
+   if( $contact_type==='contact' ) {
+      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_1, $amocrm_1C_integration_contact_custom_field_client_name_1);
+      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_2, $amocrm_1C_integration_contact_custom_field_client_name_2);
+      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_3, $amocrm_1C_integration_contact_custom_field_client_name_3);        
+   }
+   elseif( $contact_type==='company' ) {
+      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_1, $amocrm_1C_integration_company_custom_field_client_name_1);
+      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_2, $amocrm_1C_integration_company_custom_field_client_name_2);
+      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_3, $amocrm_1C_integration_company_custom_field_client_name_3);
+   }
+   
+   $code_fields_tmp=array();
+   reset($code_fields);
+   while( list($key, $value)=each($code_fields) ) {
+      if( isset($value[0])
+          && is_numeric($value[0])
+          && isset($value[1])
+          && is_numeric($value[1]) ) {
+             
+         $code_fields_tmp[]=$value;
+          
+         $custom_field_client_code=strVal($value[0]);
+         $custom_field_client_name=strVal($value[1]);        
+      }
+   }
+   
+   $code_fields=$code_fields_tmp;
    
     
    $contacts_info=array();
+   $add_lead_in_contact=false;
    
    if( $contact_type==='contact'
        && strlen($contact_id)>0
-       && is_numeric($contact_id) ) {
+       && is_numeric($contact_id)
+       && intVal($contact_id)>0 ) {
        
        $error_status=false;
        $parameters=array();
@@ -465,7 +517,8 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
    }
    elseif( $contact_type==='company' 
            && strlen($company_id)>0
-           && is_numeric($company_id)) {
+           && is_numeric($company_id)
+           && intVal($company_id)>0 ) {
              
        $error_status=false;
        $parameters=array();
@@ -478,39 +531,113 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
          $result_array['error']='add_client_code: Ошибка запроса get_companies_info ';
          write_log($result_array['error'], $http_requester->log_file, 'AMO_QUERY');
          $result=false;
-      }          
+      }
+             
+   }
+   elseif( $contact_type==='contact'
+           || $contact_type==='company' ) {
+      
+      // search contact by code_1C     
+      // search contact by phone      
+      // create contact
+      
+      $data_1C=array();        
+      $data_1C_type='';
+      if( $contact_type==='contact' ) {
+         $data_1C_type='contacts';
+      }
+      elseif( $contact_type==='company' ) { 
+         $data_1C_type='companies';
+      }
+      
+      $data_1C[$data_1C_type]=array();
+      $data_1C[$data_1C_type][]=array();
+      $data_1C[$data_1C_type][0]['code_1C']=$code_1C;
+      $data_1C[$data_1C_type][0]['name']=$name_1C;
+      $data_1C[$data_1C_type][0]['phone']=$phone_1C;
+      $data_1C[$data_1C_type][0]['email']=$email_1C;
+   
+      $error_status=false;
+      $created_contact=create_contact_from_1C($http_requester, $contact_type, $data_1C,
+                                              $custom_field_client_code, $custom_field_client_name, null, $error_status);
+      
+      if( $error_status===true ) {
+         $result_array['error']='add_client_code: Ошибка функции create_contact_from_1C ';
+         write_log($result_array['error'], $http_requester->log_file, 'AMO_QUERY');
+         $result=false;
+      }      
+              
+      if( is_array($created_contact) ) {
+         
+         if( $contact_type==='contact'
+             && array_key_exists('contact_id', $created_contact) ) {
+                
+             $contact_id=strVal($created_contact['contact_id']);   
+         }
+         elseif( $contact_type==='company'
+                 && array_key_exists('company_id', $created_contact) ) {
+            
+             $company_id=strVal($created_contact['company_id']);       
+         }
+         
+      }
+      
+      // get contact info
+      if( $contact_type==='contact'
+          && strlen($contact_id)>0
+          && is_numeric($contact_id)
+          && intVal($contact_id)>0 ) {
           
+          $add_lead_in_contact=true;   
+             
+          $error_status=false;     
+          $parameters=array();
+          $parameters['id']=$contact_id;
+          $parameters['type']='contact';
+          
+          $contacts_info=get_contact_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+       
+          if( $error_status===true ) {
+             $result_array['error']='add_client_code: Ошибка запроса get_contact_info для созданного контакта ';
+             write_log($result_array['error'], $http_requester->log_file, 'AMO_QUERY');
+             $result=false;
+          } 
+         
+      }
+      elseif( $contact_type==='company' 
+              && strlen($company_id)>0
+              && is_numeric($company_id)
+              && intVal($company_id)>0 ) { 
+         
+          $add_lead_in_contact=true;
+          
+          $error_status=false;
+          $parameters=array();
+          $parameters['id']=$company_id;
+          $parameters['type']='company';
+          
+          $contacts_info=get_companies_info($parameters, $http_requester, null, null, null, null, null, $error_status);
+          
+          if( $error_status===true ) {
+             $result_array['error']='add_client_code: Ошибка запроса get_companies_info для созданной компании ';
+             write_log($result_array['error'], $http_requester->log_file, 'AMO_QUERY');
+             $result=false;
+          }
+          
+      }
+      
    }
    
    if( count($contacts_info)===0 ) {
       write_log('add_client_code: Не удалось получить данные контакта ', $http_requester->log_file, 'AMO_QUERY');
+      
+      $result_array['result']='success';
+      unset($result_array['error']);
+      
+      return($result);      
    }
    
-   $code_fields=array();
-   if( $contact_type==='contact' ) {
-      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_1, $amocrm_1C_integration_contact_custom_field_client_name_1);
-      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_2, $amocrm_1C_integration_contact_custom_field_client_name_2);
-      $code_fields[]=array($amocrm_1C_integration_contact_custom_field_client_code_3, $amocrm_1C_integration_contact_custom_field_client_name_3);      
-   }
-   elseif( $contact_type==='company' ) {
-      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_1, $amocrm_1C_integration_company_custom_field_client_name_1);
-      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_2, $amocrm_1C_integration_company_custom_field_client_name_2);
-      $code_fields[]=array($amocrm_1C_integration_company_custom_field_client_code_3, $amocrm_1C_integration_company_custom_field_client_name_3);
-   }
    
-   $code_fields_tmp=array();
-   reset($code_fields);
-   while( list($key, $value)=each($code_fields) ) {
-      if( isset($value[0])
-          && is_numeric($value[0])
-          && isset($value[1])
-          && is_numeric($value[1]) ) {
-             
-          $code_fields_tmp[]=$value;   
-      }
-   }
-   
-   $code_fields=$code_fields_tmp;
    
    $field_code_1C_empty='';
    $field_name_1C_empty='';
@@ -545,6 +672,10 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
           $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
           $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
           
+          if( $add_lead_in_contact===true ) {
+             $updated_fields['linked_leads_id']=array( strVal($lead_id) );
+          }
+          
           update_contact_info($parameters, $updated_fields, $http_requester,
                               null, null, null, null, null, $error_status);
           
@@ -563,6 +694,11 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
           
           $updated_fields=array();
           $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
+          $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
+          
+          if( $add_lead_in_contact===true ) {
+             $updated_fields['linked_leads_id']=array( strVal($lead_id) );
+          }          
           
           update_company_info($parameters, $updated_fields, $http_requester, $error_status);
  
