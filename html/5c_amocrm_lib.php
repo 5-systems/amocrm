@@ -1546,6 +1546,7 @@ function get_companies_info($parameters='', $amocrm_http_requester=null,
       	    $company_data['date_create']=strval($value['date_create']);
       	    $company_data['custom_fields']=$value['custom_fields'];
       	    $company_data['linked_leads_id']=$value['linked_leads_id'];
+      	    $company_data['last_modified']=strval($value['last_modified']);
       	 
       	    $companies_array[ intval($value['id']) ]=$company_data;	 
       	 }
