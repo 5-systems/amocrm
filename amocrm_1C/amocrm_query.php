@@ -485,8 +485,8 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
              
          $code_fields_tmp[]=$value;
           
-         $custom_field_client_code=strVal($value[0]);
-         $custom_field_client_name=strVal($value[1]);        
+         $custom_field_client_code[]=strVal($value[0]);
+         $custom_field_client_name[]=strVal($value[1]);        
       }
    }
    
@@ -658,8 +658,9 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
       }
    }
    
-   if( $code_1C_found===false
-       && is_numeric($field_code_1C_empty) ) {
+   if( ($code_1C_found===false
+        && is_numeric($field_code_1C_empty)
+        || $add_lead_in_contact===true) ) {
        
        $error_status=false;   
        if( $contact_type==='contact' ) {
@@ -669,8 +670,12 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
           $parameters['type']='contact';
           
           $updated_fields=array();
-          $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
-          $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
+          if( $code_1C_found===false
+              && is_numeric($field_code_1C_empty) ) {
+                 
+             $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
+             $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
+          }
           
           if( $add_lead_in_contact===true ) {
              $updated_fields['linked_leads_id']=array( strVal($lead_id) );
@@ -693,8 +698,12 @@ function add_client_code($lead_fields, $http_requester, &$result_array=array()) 
           $parameters['type']='company';
           
           $updated_fields=array();
-          $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
-          $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
+          if( $code_1C_found===false
+              && is_numeric($field_code_1C_empty) ) {
+                 
+             $updated_fields[$field_code_1C_empty]=array('id'=>$field_code_1C_empty, 'values'=>array(array('value'=>$code_1C)));
+             $updated_fields[$field_name_1C_empty]=array('id'=>$field_name_1C_empty, 'values'=>array(array('value'=>$name_1C)));
+          }
           
           if( $add_lead_in_contact===true ) {
              $updated_fields['linked_leads_id']=array( strVal($lead_id) );
