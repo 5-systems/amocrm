@@ -55,6 +55,7 @@
          $result_log.=$result_return;
          
    		write_log($result_log, $amocrm_log_file, strtoupper($method));
+   		write_log('blank_line', $amocrm_log_file, strtoupper($method));
    
    		unset($SoapClient1C);
    		exit($result_return);
@@ -66,6 +67,7 @@
 	   $result_return='Soap object is not created ';
 	   $result_log=$result_return;
 	   write_log($result_log, $amocrm_log_file, strtoupper($method));
+	   write_log('blank_line', $amocrm_log_file, strtoupper($method));
 	   
 	   exit($result_return);
 	}
@@ -92,6 +94,7 @@
 
        $result_log.=$result_return;
        write_log($result_log, $amocrm_log_file, strtoupper($method));
+       write_log('blank_line', $amocrm_log_file, strtoupper($method));
 
        unset($SoapClient1C);
        exit($result_return);
@@ -103,5 +106,6 @@
 	echo $result_return;
 	
 	write_log('Finish', $amocrm_log_file, strtoupper($method));
+	write_log('blank_line', $amocrm_log_file, strtoupper($method));
 	
 ?>
