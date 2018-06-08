@@ -329,6 +329,10 @@
       if( array_key_exists('name', $created_company_data_array) ) {
          $client_company_name=strVal($created_company_data_array['name']);
       }
+      
+       if( array_key_exists('contact_created', $created_company_data_array) ) {
+          $contact_created=$created_company_data_array['contact_created'];
+       }      
 
        if( count($created_company_data_array)>0
            && array_key_exists('id', $created_company_data_array)
@@ -817,7 +821,7 @@ function create_contact_default_local(&$http_requester, $contact_data, $user_id,
                $result['contact']['name']=$contact_data['name'];
             }
             
-            $result['contact_created']=true;
+            $result['contact']['contact_created']=true;
        }
                   
    }

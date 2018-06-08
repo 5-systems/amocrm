@@ -123,6 +123,8 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
       $company_id=null;
       $company_name=null;
       
+      $contact_created=null;
+      
       if( array_key_exists('contact_id', $client_company_array) ) {          
          $contact_id=$client_company_array['contact_id'];
          $contact_name=$client_company_array['contact_name'];
@@ -131,6 +133,10 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
       if( array_key_exists('company_id', $client_company_array) ) {        
          $company_id=$client_company_array['company_id'];
          $company_name=$client_company_array['company_name'];
+      }
+      
+      if( array_key_exists('contact_created', $client_company_array) ) {        
+         $contact_created=$client_company_array['contact_created'];
       }      
       
        $result['address_type']='';
@@ -139,6 +145,7 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
        
        if( isset($contact_id) ) $client_array['id']=$contact_id;
        if( isset($contact_name) ) $client_array['name']=$contact_name;
+       if( isset($contact_created) ) $client_array['contact_created']=$contact_created;
        
        if( count($client_array)>0 ) $result['contact']=$client_array;
        
@@ -146,6 +153,7 @@ function amocrm_1C_create_contact(&$http_requester, $contact_data, $user_id, $co
        
        if( isset($company_id) ) $company_array['id']=$company_id;
        if( isset($company_name) ) $company_array['name']=$company_name;
+       if( isset($contact_created) ) $company_array['contact_created']=$contact_created;       
        
        if( count($company_array)>0 ) $result['company']=$company_array;     
       
@@ -1292,7 +1300,9 @@ function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custo
             if( $error_status===true ) {
                 write_log('create_contact_from_1C: create_contact_from_1C_data failed, contact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
                 return($result);
-            }            
+            }
+            
+             $result['contact_created']=true;
            
         }
         elseif( $contact_type==='company' ) {
@@ -1303,7 +1313,9 @@ function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custo
             if( $error_status===true ) {
                 write_log('create_contact_from_1C: create_contact_from_1C_data failed, contact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
                 return($result);
-            }             
+            }
+            
+            $result['contact_created']=true;            
                    
         }
         
