@@ -1,5 +1,7 @@
 <?php
 
+   header('Access-Control-Allow-Origin: *');
+
    require_once('5c_std_lib.php');
    require_once('5c_files_lib.php');
    require_once('5c_database_lib.php');
