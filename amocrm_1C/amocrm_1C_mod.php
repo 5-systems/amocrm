@@ -1302,7 +1302,6 @@ function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custo
                 return($result);
             }
             
-             $result['contact_created']=true;
            
         }
         elseif( $contact_type==='company' ) {
@@ -1314,8 +1313,7 @@ function create_contact_from_1C($http_requester, $contact_type, $data_1C, $custo
                 write_log('create_contact_from_1C: create_contact_from_1C_data failed, contact_type='.$contact_type, $http_requester->{'log_file'}, 'REG_CALL '.$LogLineId);
                 return($result);
             }
-            
-            $result['contact_created']=true;            
+                       
                    
         }
         
