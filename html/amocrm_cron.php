@@ -184,21 +184,17 @@
               && is_string($value['text'])
               && strlen($value['text'])>0 ) {
               
-              if( intVal($value['date_create'])>=$date_create_note_from
-                  && intVal($value['date_create'])<=$date_create_note_to ) {
-                     
-                 $value['set_duration']=true;                     
-              }
-              else {
-                 $value['set_duration']=false;
+              if( !(intVal($value['date_create'])>=$date_create_note_from
+                    && intVal($value['date_create'])<=$date_create_note_to) ) {
+
+                 continue;
               }
                  
               $note_is_selected=false;   
               $text_array=json_decode($value['text'], true);
               if( $note_is_selected===false
                   && is_array($text_array)
-        	         && array_key_exists('DURATION', $text_array) 
-        	         && intVal($value['date_create'])>=$date_create_note_from ) {
+        	         && array_key_exists('DURATION', $text_array) ) {
               
            	     $value['text_array']=$text_array;
            	     $selected_notes_array[]=$value;
@@ -207,8 +203,7 @@
            	  
            	  if( $note_is_selected===false
            	      && is_array($text_array)
-           	      && array_key_exists('LINK', $text_array)
-           	      && intVal($value['date_create'])>=$date_create_note_from ) {
+           	      && array_key_exists('LINK', $text_array) ) {
            	        
         	        $value['text_array']=$text_array;
         	        $selected_notes_array[]=$value;
@@ -249,27 +244,11 @@
           }
           
           $_full_record_path='';
-          $_host_position=strpos($_link_record, $_url_records_left);
-          $_short_record_path='';
-          if( $_host_position!==false
-              && strlen($_link_record)>0
-              && strlen($_link_record)>($_host_position+strlen($_url_records_left)) ) {
-              
-              $_short_record_path=substr($_link_record, $_host_position+strlen($_url_records_left));
-              $_short_record_path=ltrim($_short_record_path, '/');
-              
-              $_full_record_path=$_dir_records.$_short_record_path;
-
-              if( $write_log_cron===true ) {
-   	           write_log('record from link: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
-              }
-              
-          }
-          elseif( strlen($_dir_records)>0
-                  && strlen($_uniqueid_record)>=10
-                  && is_numeric($_uniqueid_record)
-                  && intVal($_uniqueid_record)>1000000000
-                  && intVal($_uniqueid_record)<5000000000 ) {
+          if( strlen($_dir_records)>0
+              && strlen($_uniqueid_record)>=10
+              && is_numeric($_uniqueid_record)
+              && intVal($_uniqueid_record)>1000000000
+              && intVal($_uniqueid_record)<5000000000 ) {
               
               $date_suffix= date('Y/m/d/', intVal($_uniqueid_record));       
               $selected_records=select_files($_dir_records.$date_suffix, $_uniqueid_record, 10, 1);
@@ -333,8 +312,6 @@
           }
           
           if( is_array($value)
-              && array_key_exists('set_duration', $value)
-              && $value['set_duration']===true
               && array_key_exists('text_array', $value)
               && is_array($value['text_array'])
               && array_key_exists('DURATION', $value['text_array'])
@@ -371,7 +348,9 @@
           }
           
           
-          if( is_array($value)
+          if( isset($update_call_link)
+              && $update_call_link===true
+              && is_array($value)
               && array_key_exists('text_array', $value)
               && is_array($value['text_array'])
               && array_key_exists('LINK', $value['text_array'])
@@ -399,8 +378,7 @@
                    
                $update_records[]=$value;
            }
-           
-           
+                     
        }
        
        // Update record duration
