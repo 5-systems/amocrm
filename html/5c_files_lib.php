@@ -29,7 +29,6 @@ function select_files($search_dir, $select_function_type="", $maximum_recursion_
    return($selected_files);
  }
 
-	
 function treat_current_path(&$selected_files, &$dir_path, $select_function_type, $recursion_level, $maximum_recursion_level, &$counter=NULL, &$maximum_number_selected_files) {
 
 	if( count($dir_path)==0 ) {
@@ -105,7 +104,6 @@ function treat_current_path(&$selected_files, &$dir_path, $select_function_type,
 	
 	return;
 }
-
 
 function write_log($message, $log_path, $prefix='') {
 
@@ -554,6 +552,53 @@ function get_file_info($file_path) {
    
    }
 
+   return($result);
+}
+
+function select_files_linux($search_dir, $search_string, $select_function_type="") {
+
+   $result=array();
+   
+   $output_array=array();
+   $command_status=0;
+   
+   exec("find ".$search_dir." -name '*".$search_string."*' -print", $output_array, $command_status);
+   
+   if( $command_status===0 ) {
+      
+      reset($output_array);
+      while( list($key, $value)=each($output_array) ) {
+         
+      	$file_attributes=stat($value);
+			if( $file_attributes===false ) {
+				$file_attributes=Array();
+			}
+			
+			$path_parts = pathinfo($value);
+						
+			$file_attributes['name']=$path_parts['basename'];			
+			$file_attributes['dir']=$path_parts['dirname'];
+			$file_attributes['exten']=$path_parts['extension'];			
+			
+         if( is_dir($value) && substr($file_attributes['name'], 0, 1)!=='.' ) {
+				$file_attributes['directory']=true;
+			}
+			elseif( is_file($value) ) {
+				$file_attributes['directory']=false;
+			}
+			else {
+				continue;
+			}			
+			
+			if( select_function($select_function_type, $value, $file_attributes) ) {
+			   $result[$value]=$file_attributes;
+			}   
+			
+      }
+      
+   }
+   
+   
    return($result);
 }
 

@@ -382,7 +382,22 @@
            && strlen($url_get_record_phone_station)>0 ) {
       
       $record_link=$url_get_record_phone_station;
-      $record_link.='?id='.$CallId;
+      if( strpos($record_link, '?')===false ) {
+         $record_link.='?';
+      }
+      else {
+         $record_link.='&';
+      }
+      
+      $record_link.='id='.$CallId;
+      
+      if( isset($_REQUEST['param_login'])
+          && strlen($_REQUEST['param_login'])>0 ) {
+         
+          $record_link.='&param_login='.strVal($_REQUEST['param_login']);   
+      }
+      
+      $record_link.='&infotype=file';
    }
    
    $call_note_id='';
