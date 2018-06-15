@@ -1,6 +1,5 @@
 <?php
 
-
    date_default_timezone_set('Etc/GMT-3');
 
    require_once('5c_files_lib.php');   
@@ -23,7 +22,7 @@
    if( $settigs_found===false ) {
       require_once('amocrm_settings.php');
    }
-   
+  
         
    @$uniqueid=$_REQUEST['id'];
    @$min_call_size=$_REQUEST['min_size'];
@@ -45,21 +44,31 @@
    if( !isset($min_call_size) ) {
       $min_call_size='0';
    }  
-   
+  
+   write_log('blank_line', $amocrm_log_file, 'GET_REC '.$uniqueid);
+   write_log('Start time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
+ 
    $uniqueid_point=strpos($uniqueid, '.');
    if( strlen($uniqueid)!==10 && $uniqueid_point!==10 ) {
-      echo 'Bad format of uniqueid';
+      write_log('Bad format of uniqueid: uniqueid='.$uniqueid, $amocrm_log_file, 'GET_REC '.$uniqueid);
       exit;
    }
    
    $uniqueid_int=substr($uniqueid, 0, $uniqueid_point);
    $uniqueid_num=intVal($uniqueid);
    
+   write_log('search for record file ... time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
     
    $data=Array();
    $data=get_data_from_filesystem();	
 
-    
+   if( count($data)>0 && is_array($data[0]) && count($data[0])>0 ) {
+   	write_log('record file found finish time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
+   }
+   else {
+   	write_log('record file not found time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
+   }
+ 
    // Store result
    $recordfiles=Array();
    $result='';
@@ -106,6 +115,8 @@
    
    echo $result;
 
+   write_log('Finish time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid); 
+
   
 function get_data_from_filesystem() {
 
@@ -139,7 +150,7 @@ function get_data_from_filesystem() {
    $file_day=date('d', $uniqueid_num);	
 	
    $dir_search=$dir_records.$file_year.'/'.$file_month.'/'.$file_day.'/';
-	$found_files=select_files($dir_search, "", 2);
+   $found_files=select_files_linux($dir_search, $uniqueid);
 	
    $dir_content=Array();	
    while( list($key, $value)=each($found_files) ) {
@@ -194,7 +205,7 @@ function get_data_from_filesystem() {
    }
    
    $record_index_num=(int)($record_index);
-   if( $info_type=='file' && count($selected_files)>=$record_index_num && $record_index_num>=0) {
+   if( $info_type=='file' && count($selected_files)>0 && $record_index_num>=0) {
       $result_columns['recordingfile']=$selected_files[$record_index_num];
    }
    
