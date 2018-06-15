@@ -30,6 +30,7 @@
   $write_log_cron=true;
   $clean_amocrm_phonestation_database=true;
   $update_call_duration=true;
+  $update_call_link=false;
   $clean_crm_linkedid_table=true;
   
   // Fields id
