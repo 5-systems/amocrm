@@ -136,5 +136,9 @@
   $amocrm_1C_integration_company_custom_field_client_code_3='1786783';
   $amocrm_1C_integration_company_custom_field_client_name_3='1786785';
   $amocrm_1C_integration_company_custom_field_principal_client='1786787';  
+
+  // lead options
+  $amocrm_lead_create_for_outcoming_call=true;
+  $amocrm_number_of_days_for_lead_search="30";
     
 ?>
