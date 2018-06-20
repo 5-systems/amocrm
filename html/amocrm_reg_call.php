@@ -424,7 +424,7 @@
        && $amocrm_lead_create_for_outcoming_call===false ) {
           
        $create_lead=false;
-       write_log('Check if leads are created for outcoming call: '.($create_lead===true ? 'yes': 'no') , $amocrm_log_file, 'REG_CALL '.$LogLineId);
+       write_log('Check if leads are created for outcoming calls: '.($create_lead===true ? 'yes': 'no') , $amocrm_log_file, 'REG_CALL '.$LogLineId);
    }
    
    // Check if we need to create lead
