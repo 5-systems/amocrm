@@ -450,7 +450,8 @@
       
       $time_lead_modified_from=time()-60*60*24*$number_days_for_lead_search;
       
-      if( strlen($call_note_id) ) {
+      if( $create_lead===true
+          && strlen($call_note_id) ) {
          
          $lead_id_found=get_leads_local($http_requester, $contacts_array, $companies_array, $time_lead_modified_from, $error_status, $LogLineId);
          if( is_numeric($lead_id_found)
