@@ -417,36 +417,54 @@
       exit;
    }
    
+   $create_lead=true;
+   
+   // Check if create leads for outcoming calls
+   if( isset($amocrm_lead_create_for_outcoming_call)
+       && $amocrm_lead_create_for_outcoming_call===false ) {
+          
+       $create_lead=false;   
+   }
    
    // Check if we need to create lead
-   $create_lead=true;
-   $error_status=false;
-   $create_lead=need_create_lead_for_company_local($http_requester, $client_company, $error_status, $LogLineId);
-        
-   if( $error_status===true ) {
-      write_log('need_create_lead_for_company_local (company_id) failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
-      exit;
-   }
- 
-   write_log('Check if leads are created for the company: '.($create_lead===true ? 'yes': 'no') , $amocrm_log_file, 'REG_CALL '.$LogLineId);
+   if( $create_lead===true ) {
    
-   // Get leads
-   $lead_id=null;
-   $time_lead_modified_from=time()-60*60*24*30;
-   
-   if( strlen($call_note_id) ) {
+      $error_status=false;
+      $create_lead=need_create_lead_for_company_local($http_requester, $client_company, $error_status, $LogLineId);
+           
+      if( $error_status===true ) {
+         write_log('need_create_lead_for_company_local (company_id) failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+         exit;
+      }
+    
+      write_log('Check if leads are created for the company: '.($create_lead===true ? 'yes': 'no') , $amocrm_log_file, 'REG_CALL '.$LogLineId);
       
-      $lead_id_found=get_leads_local($http_requester, $contacts_array, $companies_array, $time_lead_modified_from, $error_status, $LogLineId);
-      if( is_numeric($lead_id_found)
-          && intVal($lead_id_found)>0 ) {
+      // Get leads
+      $lead_id=null;
+      $number_days_for_lead_search=30;
+      if( isset($amocrm_number_of_days_for_lead_search)
+          && is_numeric($amocrm_number_of_days_for_lead_search) ) {
+             
+          $number_days_for_lead_search=intVal($amocrm_number_of_days_for_lead_search);   
+      }
       
-          $lead_id=intVal($lead_id_found);
+      $time_lead_modified_from=time()-60*60*24*$number_days_for_lead_search;
+      
+      if( strlen($call_note_id) ) {
+         
+         $lead_id_found=get_leads_local($http_requester, $contacts_array, $companies_array, $time_lead_modified_from, $error_status, $LogLineId);
+         if( is_numeric($lead_id_found)
+             && intVal($lead_id_found)>0 ) {
+         
+             $lead_id=intVal($lead_id_found);
+         }
+      
+      }
+            
+      if( !is_null($lead_id) ) {
+         write_log('Lead is found, lead_id='.$lead_id, $amocrm_log_file, 'REG_CALL '.$LogLineId);
       }
    
-   }
-         
-   if( !is_null($lead_id) ) {
-      write_log('Lead is found, lead_id='.$lead_id, $amocrm_log_file, 'REG_CALL '.$LogLineId);
    }
 
    
@@ -539,18 +557,22 @@
    
    }
    
-   // Notification 
-   $create_notification_status=false;
-   if( strlen($call_note_id)>0 ) {
-      $create_notification_status=create_notification($db_conn, $user_phone, $user_id, $user_name, $lead_id,
-                                             $contact_created, $lead_created, $CallId, $parsed_client_phone,
-                                             $client_contact_name, $client_company_name, $OutcomingCall,
-                                             $MissedCall, $record_link, $amocrm_log_file, $LogLineId);
-   }
+   // Notification
+   if( $create_lead===true ) {
+      
+      $create_notification_status=false;
+      if( strlen($call_note_id)>0 ) {
+         $create_notification_status=create_notification($db_conn, $user_phone, $user_id, $user_name, $lead_id,
+                                                $contact_created, $lead_created, $CallId, $parsed_client_phone,
+                                                $client_contact_name, $client_company_name, $OutcomingCall,
+                                                $MissedCall, $record_link, $amocrm_log_file, $LogLineId);
+      }
+      
+      if( $create_notification_status===false ) {
+         write_log('create_notification failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
+         exit;    
+      }
    
-   if( $create_notification_status===false ) {
-      write_log('create_notification failed ', $amocrm_log_file, 'REG_CALL '.$LogLineId);
-      exit;    
    }
       
    echo $CallId;
