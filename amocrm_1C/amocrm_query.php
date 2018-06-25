@@ -232,7 +232,14 @@ function get_client_codes($lead_fields, $http_requester, &$result_array=array())
               && array_key_exists('company_id', $value) ) {
                  
               $company_id=strVal($value['company_id']);                
-          }          
+          }
+          
+          if( is_array($value)
+              && isset($custom_field_caller_number)
+              && strlen($custom_field_caller_number)>0 ) {
+                 
+              $result_array['lead']['client_phone']=get_code_1C_from_response($leads_info, $custom_field_caller_number);   
+          }
           
           break;
        }

@@ -1472,6 +1472,7 @@ function get_leads_info($parameters='', $amocrm_http_requester=null,
       	    $lead_data['pipeline_id']=strVal($value['pipeline_id']);
       	    $lead_data['last_modified']=intVal($value['last_modified']);
       	    $lead_data['server_time']=intVal($server_time);
+      	    $lead_data['custom_fields']=$value['custom_fields'];
       	    
       	 
       	    $leads_array[ intval($value['id']) ]=$lead_data;	 
