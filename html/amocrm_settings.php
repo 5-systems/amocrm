@@ -37,6 +37,7 @@
   $custom_field_user_amo_crm='1779045';
   $custom_field_user_phone='1779061';
   $custom_field_first_called_number="1781769";
+  $custom_field_caller_number="1783029";
   
   $custom_field_comment='1780723';
   $custom_field_web_site='1783029';
