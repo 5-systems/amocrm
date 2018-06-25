@@ -188,6 +188,7 @@ function get_client_codes($lead_fields, $http_requester, &$result_array=array())
    global $amocrm_1C_integration_company_custom_field_principal_client;  
    
    global $custom_field_phone_id;
+   global $custom_field_caller_number;
    
    $result=true;
 
