@@ -345,6 +345,9 @@ function get_client_codes($lead_fields, $http_requester, &$result_array=array())
    else {
       $result_array['result']='failed';
    }   
+
+   $http_requester->{'max_wait_time_for_lock_sec'}=$lock_timeout;
+   $http_requester->{'lock_priority'}=$lock_priority;
    
    return($result);   
 }
