@@ -192,6 +192,11 @@ function get_client_codes($lead_fields, $http_requester, &$result_array=array())
    
    $result=true;
 
+   $lock_timeout=$http_requester->{'max_wait_time_for_lock_sec'};
+   $lock_priority=$http_requester->{'lock_priority'};
+   $http_requester->{'max_wait_time_for_lock_sec'}=15;
+   $http_requester->{'lock_priority'}=-5;   
+   
    $leads_info=null;
    $contact_id='';
    $company_id='';
