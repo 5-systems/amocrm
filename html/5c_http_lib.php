@@ -70,7 +70,7 @@
 }
 
 
-function request_GET($url, $parameters, $log_path="", $coockie_path="", $headers="", $timeout=60, &$response_header=array()) {
+function request_GET($url, $parameters, $log_path="", $coockie_path="", $headers="", $timeout=60, &$response_header=null) {
 
   $result=false;
 
@@ -144,7 +144,9 @@ function request_GET($url, $parameters, $log_path="", $coockie_path="", $headers
 
   $result=curl_exec($curl);
 
-  $response_header=get_headers($url_used);
+  if( isset($response_header) ) {  
+      $response_header=get_headers($url_used);
+  }
   
   return($result);
 }
