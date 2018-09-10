@@ -219,14 +219,7 @@
           write_log('Selected '.count($selected_notes_array).' records ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
        }
        
-       // Get full record path   
-       $_url_records_left=$url_records;
-       $_url_records_left=rtrim($_url_records_left, '/');
-       
-       $_dir_records=$dir_records;
-       $_dir_records=rtrim($_dir_records, '/');
-       $_dir_records=( strlen($_dir_records)>0 ? $_dir_records.'/': '');
-       
+       // Get full record path       
        $elements_number=count($selected_notes_array);
        for( $i=0; $i<$elements_number; $i++ ) {
        
@@ -243,33 +236,76 @@
                   && is_string($value['text_array']['UNIQ']) ) $_uniqueid_record=$value['text_array']['UNIQ'];
           }
           
-          $_full_record_path='';
-          if( strlen($_dir_records)>0
-              && strlen($_uniqueid_record)>=10
-              && is_numeric($_uniqueid_record)
-              && intVal($_uniqueid_record)>1000000000
-              && intVal($_uniqueid_record)<5000000000 ) {
-              
-              $date_suffix= date('Y/m/d/', intVal($_uniqueid_record));       
-              $selected_records=select_files($_dir_records.$date_suffix, $_uniqueid_record, 10, 1);
-              if( is_array($selected_records)
-                  && count($selected_records)>0 ) {
-              
-                  reset($selected_records);
-                  while( list($key, $value)=each($selected_records) ) {
-                     $_full_record_path=$key;
-                     
-                     if( $write_log_cron===true ) { 
-	      	             write_log('record from uniqueid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
-                     }
-                     
-                     break;
-                  }
-              }
-              
+          $_dir_records_array=array();
+          $_url_records_left_array=array();
+          
+          if( is_array($dir_records) ) {
+             
+             if( count($dir_records)>0 ) {
+               $_dir_records_array=$dir_records;
+             }
+             
+             if( is_array($url_records)
+                 && count($url_records)>0 ) {
+ 
+               $_url_records_left_array=$url_records;
+             }
+             else {
+               write_log('Value of url_records is not array in settings, but dir_records is array. Set array for url_records! ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
+             }
+             
+          }
+          else {
+             $_dir_records_array[]=$dir_records;
+             $_url_records_left_array[]=$url_records;                  
           }
           
-          $selected_notes_array[$i]['record_path']=$_full_record_path;      
+          
+          $_full_record_path='';
+          $_dir_index=0;
+          $break_cycle=false;
+          
+          reset($_dir_records_array);
+          while( list($dir_key, $dir_value)=each($_dir_records_array) ) {
+          
+             $_dir_records=$dir_value;         
+             
+             $_dir_records=rtrim($_dir_records, '/');
+             $_dir_records=( strlen($_dir_records)>0 ? $_dir_records.'/': '');
+             
+             if( strlen($_dir_records)>0
+                 && strlen($_uniqueid_record)>=10
+                 && is_numeric($_uniqueid_record)
+                 && intVal($_uniqueid_record)>1000000000
+                 && intVal($_uniqueid_record)<5000000000 ) {
+                 
+                 $date_suffix= date('Y/m/d/', intVal($_uniqueid_record));       
+                 $selected_records=select_files($_dir_records.$date_suffix, $_uniqueid_record, 10, 1);
+                 if( is_array($selected_records)
+                     && count($selected_records)>0 ) {
+                 
+                     reset($selected_records);
+                     while( list($key, $value)=each($selected_records) ) {
+                        $_full_record_path=$key;
+                        $_dir_index=$dir_key;
+                        
+                        if( $write_log_cron===true ) { 
+   	      	             write_log('record from uniqueid: '.$_full_record_path, $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
+                        }
+                        
+                        $break_cycle=true;
+                        break;
+                     }
+                 }
+                 
+             }
+             
+             if( $break_cycle===true ) break;
+          
+          }
+          
+          $selected_notes_array[$i]['record_path']=$_full_record_path;
+          $selected_notes_array[$i]['record_dir_index']=$_dir_index;
        }
     
        if( $write_log_cron===true ) {   
@@ -288,26 +324,34 @@
               && is_string($value['record_path']) ) {
               
               $_full_record_path=$value['record_path'];
-          }    
+          }
+          
+          $_record_dir_index=0;
+          if( is_array($value)
+              && array_key_exists('record_dir_index', $value)
+              && is_numeric($value['record_dir_index']) ) {
+              
+              $_record_dir_index=$value['record_dir_index'];
+          }         
           
           $_record_duration=0;
           if( strlen($_full_record_path)>0
               && file_exists($_full_record_path) ) {
               
-    	    $_file_info=get_file_info($_full_record_path);
-    	    
-      	    $_file_coeff_size_sec=0;
-    	    if( strcasecmp($_file_info['extension'], 'mp3')===0 ) {
-    		  $_file_coeff_size_sec=$records_coeff_byte_to_sec_mp3_phone_station;
-    	    }
-    	    elseif( strcasecmp($_file_info['extension'], 'wav')===0 ) {
-    		  $_file_coeff_size_sec=$records_coeff_byte_to_sec_wav_phone_station;
-    	    }
-    	    
-    
-    	    if( array_key_exists('size', $_file_info) ) {
-    		  $_record_duration=intVal($_file_info['size'])*$_file_coeff_size_sec;
-    	    }
+       	    $_file_info=get_file_info($_full_record_path);
+       	    
+         	    $_file_coeff_size_sec=0;
+       	    if( strcasecmp($_file_info['extension'], 'mp3')===0 ) {
+       		  $_file_coeff_size_sec=$records_coeff_byte_to_sec_mp3_phone_station;
+       	    }
+       	    elseif( strcasecmp($_file_info['extension'], 'wav')===0 ) {
+       		  $_file_coeff_size_sec=$records_coeff_byte_to_sec_wav_phone_station;
+       	    }
+       	    
+       
+       	    if( array_key_exists('size', $_file_info) ) {
+       		  $_record_duration=intVal($_file_info['size'])*$_file_coeff_size_sec;
+       	    }
                        
           }
           
@@ -319,49 +363,11 @@
                   
               $selected_notes_array[$i]['record_duration']=round($_record_duration, 0);
           }
-
           
-          // Calculate record link
-          $_record_link='';
-          if( strlen($_full_record_path)>0
-              && file_exists($_full_record_path) ) {
-              
-              $_url_records_left=$url_records;
-              $_url_records_left=rtrim($_url_records_left, '/');
-              $_url_records_left=(strlen($_url_records_left)>0 ? $_url_records_left.'/': '');
-                  
-              $_dir_records=$dir_records;
-              $_dir_records=rtrim($_dir_records, '/');
-              $_dir_records=( strlen($_dir_records)>0 ? $_dir_records.'/': '');
-              
-              $_short_record_path='';
-              $_dir_path_position=strpos($_full_record_path, $_dir_records);
-              if( $_dir_path_position!==false
-                  && strlen($_full_record_path)>($_dir_path_position+strlen($_dir_records)) ) {
-                      
-                  $_short_record_path=substr($_full_record_path, $_dir_path_position+strlen($_dir_records));
-                  $_short_record_path=ltrim($_short_record_path, '/');
-                  
-                  $_record_link=$_url_records_left.$_short_record_path;
-              }
-              
-          }
-          
-          
-          if( isset($update_call_link)
-              && $update_call_link===true
-              && is_array($value)
-              && array_key_exists('text_array', $value)
-              && is_array($value['text_array'])
-              && array_key_exists('LINK', $value['text_array'])
-              && is_string($value['text_array']['LINK']) ) {
-                  
-              $selected_notes_array[$i]['record_link']=$_record_link;
-          }
        }
       
        if( $write_log_cron===true ) { 
-            write_log('Durations, links are set ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
+            write_log('Durations are set ', $amocrm_log_file, 'UPDATE DURATION '.$_REQUEST['param_login']);
        }
     
        // Select records with non-zero duration
@@ -371,10 +377,7 @@
            
            if( (array_key_exists('record_duration', $value)
                 && is_numeric($value['record_duration'])
-                && $value['record_duration']>0) 
-                || (array_key_exists('record_link', $value)
-                    && is_string($value['record_link'])
-                    && strlen($value['record_link'])>0) ) {
+                && $value['record_duration']>0) ) {
                    
                $update_records[]=$value;
            }
@@ -403,8 +406,6 @@
            while( list($key, $value)=each($update_records) ) {
                
                 if( strVal($value['element_type'])!==strVal($value_type) ) continue;
-               
-                $parameters['id'][]=$value['note_id'];
                 
                 $update_duration=false;
                 $update_link=false;
@@ -419,22 +420,13 @@
                     $text_array['DURATION']=$value['record_duration'];
                     $update_duration=true;
                 }
-                
-                if( array_key_exists('record_link', $value)
-                    && is_string($value['record_link'])
-                    && strlen($value['record_link'])>0 ) {
-                
-                    $text_array['LINK']=$value['record_link'];
-                    $update_link=true;
-                }
     
                 $text_json=json_encode($text_array);
         
                 $note_data=array("text"=>$text_json);
                 $updated_fields[intVal($value['note_id'])]=$note_data;
                 
-                if( $update_duration===true
-                    || $update_link===true ) {
+                if( $update_duration===true ) {
                 
                     $parameters['id'][]=$value['note_id'];
                     $counter_update_records+=1;

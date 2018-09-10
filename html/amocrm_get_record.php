@@ -1,7 +1,7 @@
 <?php
 
    date_default_timezone_set('Etc/GMT-3');
-
+   
    require_once('5c_files_lib.php');   
    require_once('5c_std_lib.php');
    
@@ -29,6 +29,7 @@
    @$info_type=$_REQUEST['infotype'];
    @$record_index=$_REQUEST['index'];
 
+
    if( !isset($uniqueid) ) {
    	$uniqueid='';
    }   
@@ -47,6 +48,7 @@
   
    write_log('blank_line', $amocrm_log_file, 'GET_REC '.$uniqueid);
    write_log('Start time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
+   write_log($_REQUEST, $amocrm_log_file, 'GET_REC '.$uniqueid);   
  
    $uniqueid_point=strpos($uniqueid, '.');
    if( strlen($uniqueid)!==10 && $uniqueid_point!==10 ) {
@@ -58,9 +60,26 @@
    $uniqueid_num=intVal($uniqueid);
    
    write_log('search for record file ... time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
-    
+   
    $data=Array();
-   $data=get_data_from_filesystem();	
+   if( is_array($dir_records) ) {
+      
+      reset($dir_records);
+      while( list($key, $value)=each($dir_records) ) {
+         $data=Array();
+         $data=get_data_from_filesystem($value);
+         
+         if( count($data)>0 && is_array($data[0]) && count($data[0])>0
+             && ( array_key_exists('NumberOfRecords', $data[0]) && $data[0]['NumberOfRecords']>0
+                  || array_key_exists('recordingfile', $data[0]) ) ) {
+            break;
+         }
+      }   
+      
+   }
+   else {
+      $data=get_data_from_filesystem($dir_records);     
+   }
 
    if( count($data)>0 && is_array($data[0]) && count($data[0])>0 ) {
    	write_log('record file found finish time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid);
@@ -118,9 +137,8 @@
    write_log('Finish time='.time(), $amocrm_log_file, 'GET_REC '.$uniqueid); 
 
   
-function get_data_from_filesystem() {
+function get_data_from_filesystem($dir_records='') {
 
-   global $dir_records;
    global $records_coeff_byte_to_sec_mp3_phone_station;
    global $records_coeff_byte_to_sec_wav_phone_station;    
    
@@ -130,11 +148,15 @@ function get_data_from_filesystem() {
    global $record_index;   
    
    global $uniqueid_num;
+   global $amocrm_log_file;
+
+
+   write_log('Start search...', $amocrm_log_file, 'GET_REC '.$uniqueid);   
 
 
    // From file structure
    if( strlen($dir_records)==0 ) {
-      echo 'Path to directory is not defined!';
+      write_log('Path to directory is not defined!', $amocrm_log_file, 'GET_REC '.$uniqueid);
       exit;
    }
    
@@ -151,7 +173,9 @@ function get_data_from_filesystem() {
 	
    $dir_search=$dir_records.$file_year.'/'.$file_month.'/'.$file_day.'/';
    $found_files=select_files_linux($dir_search, $uniqueid);
-	
+
+   write_log('Search: dir='.$dir_search.' found files='.count($found_files), $amocrm_log_file, 'GET_REC '.$uniqueid);   
+   
    $dir_content=Array();	
    while( list($key, $value)=each($found_files) ) {
    
