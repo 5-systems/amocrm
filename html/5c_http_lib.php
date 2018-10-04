@@ -27,12 +27,13 @@
   $curl = curl_init();
   
   if( !is_array($headers) && strlen($headers)===0 ) {
-  
+
+     $headers=array();     
      if( is_array($parameters) ) { 
-        $headers[] = "multipart/form-data";
+        $headers[] = "Content-Type: multipart/form-data";
      }
      else {
-        $headers[] = "application/x-www-form-urlencoded";
+        $headers[] = "Content-Type: application/x-www-form-urlencoded";
      }
      
   }
@@ -118,7 +119,7 @@ function request_GET($url, $parameters, $log_path="", $coockie_path="", $headers
   
   if( !is_array($headers) && strval($headers)===0 ) {
     $headers=array();
-    $headers[]="application/x-www-form-urlencoded";
+    $headers[]="Content-Type: application/x-www-form-urlencoded";
   }
   
   if( is_string($timeout)
