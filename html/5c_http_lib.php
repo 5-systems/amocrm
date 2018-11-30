@@ -1,5 +1,7 @@
 <?php
 
+  // version 30.11.2018
+
   header('Access-Control-Allow-Origin: *');
   include_once('5c_files_lib.php');
 
