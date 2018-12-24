@@ -1,5 +1,7 @@
 <?php
 
+// version 24.12.2018
+
 require_once('5c_files_lib.php');
 require_once('amocrm_settings.php');
 
@@ -133,16 +135,6 @@ function filter_alphanumeric($input_string) {
 	$output=preg_replace("/[ ]/", '_', $input_string);
 	$output=preg_replace("/[^А-Яа-яA-Za-z0-9_]/u", '', $output);
 	return($output);
-}
-
-function html_to_utf8($input_str) {
-
-	$output_str=preg_replace("/\\%u([A-Fa-f0-9]{4})/e", "iconv('UCS-4LE','UTF-8',pack('V',hexdec('U$1')))", $input_str);
-
-        $output_str=preg_replace("/\\\\u([A-Fa-f0-9]{4})/e", "iconv('UCS-4LE','UTF-8',pack('V',hexdec('U$1')))", $output_str);
-	
-return($output_str);
-
 }
 
 function filter_numeric($input_string) {
