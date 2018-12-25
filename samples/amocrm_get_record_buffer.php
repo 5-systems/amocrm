@@ -167,7 +167,7 @@
                   }
                   
                   // convert to mp3
-                  $shell_command='lame --cbr -b 32k '.$filename.' '.$filename_mp3.' 2>/dev/null';
+                  $shell_command='lame --cbr -m m -b 32k '.$filename.' '.$filename_mp3.' 2>/dev/null';
                   $return_shell=exec_shell_command($shell_command, $amocrm_log_file, 'LAME_CONV');
                   if( $return_shell===0 ) {
                      $files_concat_array[]=$filename_mp3;
@@ -195,7 +195,7 @@
          }
          
          $filename=$filename.'_concatenated.mp3';
-         $shell_command.=' | lame --mp3input --tt "record" --tl "record" --ta "record" --cbr -b 32k - '.$filename;
+         $shell_command.=' | lame --mp3input --tt "record" --tl "record" --ta "record" --cbr -m m -b 32k - '.$filename;
          
          $return_shell=exec_shell_command($shell_command, $amocrm_log_file, 'LAME_CONV');
          if( $return_shell===0 ) {
