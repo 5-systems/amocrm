@@ -189,7 +189,7 @@
          
          reset($files_concat_array);
          while(list($key, $value)=each($files_concat_array)) {
-            if( filesize($value)>0 ) {
+            if( file_exists($value) && filesize($value)>0 ) {
                $shell_command.=$value.' ';
             }
          }
