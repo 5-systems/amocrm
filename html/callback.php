@@ -1,9 +1,15 @@
 <?php
 
-// version 24.12.2018
-
 require_once('5c_files_lib.php');
-require_once('amocrm_settings.php');
+
+// call back
+$ASTHost = "127.0.0.1";
+$ASTPort = "5038";
+$ASTTimeout = "10";
+$ASTUser='admin';
+$ASTPassword='---';
+$path_log='/var/log/company_name/callback.log';
+
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -14,12 +20,18 @@ header('Content-Type: text/html; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
 @$phone=htmlspecialchars($_REQUEST['phone']);
-@$name=htmlspecialchars($_REQUEST['startparam2']);
-@$comment=htmlspecialchars($_REQUEST['startparam3']);
+@$name=htmlspecialchars($_REQUEST['name']);
+@$comment=htmlspecialchars($_REQUEST['comment']);
 @$domain=htmlspecialchars($_REQUEST['domain']);
 @$parts=$_REQUEST['parts'];
 @$session_id=$_REQUEST['session_id'];
 @$user_id=$_REQUEST['user_id'];
+@$department=$_REQUEST['department'];
+
+write_log('blank_line', $path_log);
+write_log($_REQUEST, $path_log);
+
+exit('ok');
 
 if(!isset($phone)) {
         $phone='';
@@ -27,7 +39,7 @@ if(!isset($phone)) {
 else {
 	$phone=filter_numeric( urldecode($phone) );
 	$phone=substr($phone, -10);
-	$phone=$phone_prefix.$phone;
+	$phone='8'.$phone;
 }
 
 
@@ -64,28 +76,30 @@ if(!isset($user_id)) {
         $user_id='';
 }
 
+if(!isset($department)) {
+        $department='';
+}
 
-#if( $domain=='maxisyspro' ) $queue='199';
-#if( $domain=='proboschru' || $domain=='proboschpro' ) $queue='199';
 
+$queue='100';
 
 $errno=5;
 $errstr="";
-$sconn = fsockopen($host_phone_station, $port_phone_station, $errno, $errstr, $timeout_phone_station);
+$sconn = fsockopen($ASTHost, $ASTPort, $errno, $errstr, $ASTTimeout);
 
 $ReturnValue='';
 
 if ($sconn) {
 	fputs ($sconn, "Action: Login\r\n");
-	fputs ($sconn, "Username: ".$user_phone_station."\r\n");
-	fputs ($sconn, "Secret: ".$password_phone_station."\r\n");
-	fputs ($sconn, "\r\n\r\n");
+	fputs ($sconn, "Username: ".$ASTUser."\r\n");
+	fputs ($sconn, "Secret: ".$ASTPassword."\r\n");
+	fputs ($sconn, "\r\n");
 	usleep(500000);
 
 
 	fputs ($sconn, "Action: Originate\r\n");
 	fputs ($sconn, "Channel: Local/s@crm_callback_inbound\r\n");
-	fputs ($sconn, "Callerid: Заявка с сайта. Имя: ".$name." Телефон: ".$phone." Комментарий: ".$comment."\r\n");
+	fputs ($sconn, "Callerid: Заявка с сайта. Имя: ".$name." Телефон: ".$phone."\r\n");
 	fputs ($sconn, "Context: crm_callback_outbound\r\n");
 	fputs ($sconn, "Exten: s\r\n");
 	fputs ($sconn, "Variable: CALLEXT=".$phone."\r\n");
@@ -104,9 +118,9 @@ if ($sconn) {
 	fputs ($sconn, "Action: Logoff\r\n\r\n");
 	usleep (500000);
 
-	while(!feof($sconn)) {
-  	   	$ReturnValue=$ReturnValue.fgets($sconn);
-  	}
+	//while(!feof($sconn)) {
+  	//   	$ReturnValue=$ReturnValue.fgets($sconn);
+  	//}
 
 	fclose ($sconn);
 	$ConnResult='Ok';	
@@ -126,8 +140,9 @@ $LogResult['queue']=$queue;
 $LogResult['parts']=$parts;
 $LogResult['session_id']=$session_id;
 $LogResult['user_id']=$user_id;
+$LogResult['department']=$department;
 
-write_log($LogResult, $callback_log);
+write_log($LogResult, $path_log);
 
 exit($ReturnValue);
 
@@ -136,6 +151,7 @@ function filter_alphanumeric($input_string) {
 	$output=preg_replace("/[^А-Яа-яA-Za-z0-9_]/u", '', $output);
 	return($output);
 }
+
 
 function filter_numeric($input_string) {
 	$output=preg_replace("/[^0-9]/u", '', $input_string);
