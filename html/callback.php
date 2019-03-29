@@ -2,6 +2,7 @@
 
 require_once('5c_files_lib.php');
 
+// version 01.03.2019
 // call back
 $ASTHost = "127.0.0.1";
 $ASTPort = "5038";
@@ -9,6 +10,8 @@ $ASTTimeout = "10";
 $ASTUser='admin';
 $ASTPassword='---';
 $path_log='/var/log/company_name/callback.log';
+
+$queue='100';
 
 
 error_reporting(E_ALL);
@@ -31,7 +34,6 @@ header('Access-Control-Allow-Origin: *');
 write_log('blank_line', $path_log);
 write_log($_REQUEST, $path_log);
 
-exit('ok');
 
 if(!isset($phone)) {
         $phone='';
@@ -80,8 +82,6 @@ if(!isset($department)) {
         $department='';
 }
 
-
-$queue='100';
 
 $errno=5;
 $errstr="";
