@@ -453,7 +453,7 @@
       $time_lead_modified_from=time()-60*60*24*$number_days_for_lead_search;
       
       if( $create_lead===true
-          && strlen($call_note_id) ) {
+          && strlen($call_note_id)>0 ) {
          
          $lead_id_found=get_leads_local($http_requester, $contacts_array, $companies_array, $time_lead_modified_from, $error_status, $LogLineId);
          if( is_numeric($lead_id_found)
@@ -959,8 +959,8 @@ function get_leads_local(&$http_requester, $contacts_array, $companies_array, $t
       
       reset($leads_array);
       while( list($key, $value)=each($leads_array) ) {
-         if( $value['status_id']!==$status_successful_realization
-            && $value['status_id']!==$status_canceled ) {
+         if( strVal($value['status_id'])!==strVal($status_successful_realization)
+             && strVal($value['status_id'])!==strVal($status_canceled) ) {
                
                if( is_numeric($value['contact_id']) && intval($value['contact_id'])>0 && array_key_exists( intval($value['contact_id']), $contacts_array) ) {
                   $lead_id=$value['lead_id'];
@@ -992,8 +992,8 @@ function get_leads_local(&$http_requester, $contacts_array, $companies_array, $t
       
       reset($leads_array);
       while( list($key, $value)=each($leads_array) ) {
-         if( $value['status_id']!==$status_successful_realization
-            && $value['status_id']!==$status_canceled ) {
+         if( strVal($value['status_id'])!==strVal($status_successful_realization)
+             && strVal($value['status_id'])!==strVal($status_canceled) ) {
                
             if( is_numeric($value['company_id']) && intval($value['company_id'])>0 && array_key_exists( intval($value['company_id']), $companies_array_search_lead) ) {
                $lead_id=$value['lead_id'];
@@ -1476,7 +1476,7 @@ function create_unsorted_local($http_requester, $phone_from, $phone_to, $user_id
         $phone_from_with_name=$user_phone;
     }
     else {
-        $phone_to_with_name=( strlen($user_id)>0 ? $user_id: $user_phone );
+        $phone_to_with_name=( strlen($user_id)>0 ? strVal($user_id): strVal($user_phone) );
     }    
         
     if( strlen($phone_to_with_name)===0 ) $phone_to_with_name='---';

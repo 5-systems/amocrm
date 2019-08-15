@@ -364,7 +364,7 @@ class amocrm_register_call {
         		  
             			if( is_array($value_2)
             			   && isset($value_2['id'])
-            			   && $value_2['id']===$this->custom_field_user_phone
+            			   && strVal($value_2['id'])===strVal($this->custom_field_user_phone)
             			   && is_array($value_2['values'])
             			   && strpos($value_2['values'][0]['value'], $this->user_phone)!==false ) {
             			   
@@ -395,7 +395,7 @@ class amocrm_register_call {
     		  
         		  if( is_array($value)
         		     && isset($value['id'])
-        		     && $value['id']!==$this->custom_field_user_amo_crm ) continue; 
+        		     && strVal($value['id'])!==strVal($this->custom_field_user_amo_crm) ) continue; 
         
         		  $values_array=$value['values'];	  		  
         		  if( is_array($values_array)
@@ -1056,7 +1056,7 @@ function get_user_internal_phone($user_id, $custom_field_user_amo_crm, $custom_f
     	       
     	       if( is_array($value)
     		  && isset($value['id'])
-    		  && $value['id']!==$custom_field_user_phone ) continue; 
+    		  && strVal($value['id'])!==strVal($custom_field_user_phone) ) continue; 
     
     	       $values_array=$value['values'];	  
     	       
@@ -1141,7 +1141,7 @@ function get_user_info_by_user_phone($user_phone, $custom_field_user_amo_crm, $c
     	       
     		     if( is_array($value_2)
     			&& isset($value_2['id'])
-    			&& $value_2['id']===$custom_field_user_phone
+    			&& strVal($value_2['id'])===strVal($custom_field_user_phone)
     			&& is_array($value_2['values'])
     			&& strpos($value_2['values'][0]['value'], $user_phone)!==false ) {
     			
