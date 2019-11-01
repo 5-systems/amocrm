@@ -9,6 +9,7 @@
     $time_interval_plus=1;
     $time_interval_minus=0.1;   
     $data_from_database=false;
+    $search_type='linux';
     
     // Data from file system
     $diff_current_zone_GMT=0;
@@ -37,17 +38,16 @@
     @$record_index=$_GET['startparam3'];
 
     if( !isset($info_type) ) {
-	$info_type='description';
+	     $info_type='description';
     }    
 
     if( !isset($record_index) ) {
-	$record_index='0';
+	     $record_index='0';
     }
     
     if( !isset($min_call_duration) ) {
-	$min_call_duration='0';
+	     $min_call_duration='0';
     }
-
 
     $uniqueid_point=strpos($uniqueid, '.');
     if( strlen($uniqueid)!==10 && $uniqueid_point!==10 ) {
@@ -129,6 +129,8 @@ function get_data_from_filesystem() {
     
     global $uniqueid_low;
     global $uniqueid_upper;
+    
+    global $search_type;
 
     // From file structure
     if( strlen($dir_path)==0 ) {
@@ -145,12 +147,20 @@ function get_data_from_filesystem() {
     $current_time=date('His', time());
     
     $file_date=date('Ymd', $uniqueid_num+$diff_current_zone_GMT*3600);
-	$file_year=date('Y', $uniqueid_num+$diff_current_zone_GMT*3600);
-	$file_month=date('m', $uniqueid_num+$diff_current_zone_GMT*3600);
-	$file_day=date('d', $uniqueid_num+$diff_current_zone_GMT*3600);	
+	 $file_year=date('Y', $uniqueid_num+$diff_current_zone_GMT*3600);
+	 $file_month=date('m', $uniqueid_num+$diff_current_zone_GMT*3600);
+	 $file_day=date('d', $uniqueid_num+$diff_current_zone_GMT*3600);	
 	
     $dir_search=$dir_path.$file_year.'/'.$file_month.'/'.$file_day.'/';
-	$found_files=select_files($dir_search, "", 2);
+    
+     $found_files=array();
+    if( $search_type==='linux' ) {
+       $found_files=select_files_linux($dir_search, $uniqueid, "");
+    }
+    else {
+	    $found_files=select_files($dir_search, "", 2);
+    }
+   	 
 	
     $dir_content=Array();
     $loc_counter=0;	
