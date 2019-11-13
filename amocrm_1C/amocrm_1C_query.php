@@ -38,6 +38,7 @@
    write_log('Start', $amocrm_log_file, strtoupper($method));	
 	write_log($data, $amocrm_log_file, strtoupper($method));
 
+        ini_set('default_socket_timeout', 1);
 	ini_set("soap.wsdl_cache_enabled", "0");
 	$SoapClient1C=null;
 
