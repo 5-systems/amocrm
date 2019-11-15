@@ -1,6 +1,6 @@
 <?php
 
-// version 24.05.2018
+// version 15.11.2019
 
 date_default_timezone_set ('Etc/GMT-3');
 
@@ -106,6 +106,39 @@ function template_set_parameter($parameter, $value, &$template) {
     $function_result=str_replace('&'.$parameter.'&', $value, $function_result);
     $template=$function_result;
     return($function_result);
+}
+
+function get_value_from_text($text, $start_delimiter, $end_delimiter, $get_string_to_end_if_end_delimiter_not_found=true) {
+	
+	$result='';
+	
+	if( strlen($text)===0 || strlen($start_delimiter)===0 ) {
+		return($result);		
+	}
+	
+	$loc_start_pos=strpos($text, $start_delimiter); 
+	if( $loc_start_pos===false ) return($result); 
+	
+	$loc_end_pos=false;
+	$loc_start_search=$loc_start_pos+strlen($start_delimiter);
+	if( $loc_start_search<strlen($text) && strlen($end_delimiter)>0 ) {
+		$loc_end_pos=strpos($text, $end_delimiter, $loc_start_search); 	
+	}
+	
+	if( $loc_end_pos===false ) {
+		
+		if( $get_string_to_end_if_end_delimiter_not_found===true && strlen($text)>0 ) {
+			$loc_end_pos=strlen($text);
+		}
+		else {
+			return($result);
+		}
+		
+	}
+	
+	$result=substr($text, $loc_start_pos+strlen($start_delimiter), $loc_end_pos-$loc_start_pos-strlen($start_delimiter));
+	
+	return($result);
 }
 
 ?>
