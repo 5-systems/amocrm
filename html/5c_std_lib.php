@@ -141,4 +141,20 @@ function get_value_from_text($text, $start_delimiter, $end_delimiter, $get_strin
 	return($result);
 }
 
+function utf8_chr($i) {
+    return iconv('UCS-4LE', 'UTF-8', pack('V', $i));
+}
+
+function utf8_ord($s) {
+	 $result=-1;
+	 
+	 $unpack_result=unpack('V', iconv('UTF-8', 'UCS-4LE', $s));
+	 
+	 if( is_array($unpack_result) && count($unpack_result)>0 ) {
+	 	  $result=$unpack_result[1];
+	 }
+	 
+    return($result);
+}
+
 ?>
