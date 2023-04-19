@@ -107,7 +107,7 @@
 	//send email and sms
 	if( strpos($ExtNum, '4991103369')!==false || strpos($ExtNum, '4951628355')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Ярославское шоссе 25). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -144,7 +144,7 @@
 	}
 	elseif( strpos($ExtNum, '4951045014')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Хорошевское шоссе). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -181,7 +181,7 @@
 	}
 	elseif( strpos($ExtNum, '4951628344')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Хорошевское шоссе Дублер). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -218,7 +218,7 @@
 	}
 	elseif( strpos($ExtNum, '4951320158')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Ярославское шоссе 2Е Дублер). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -255,7 +255,7 @@
 	}
 	elseif( strpos($ExtNum, '4951320167')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Обручева Дублер). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -292,7 +292,7 @@
 	}
 	elseif( strpos($ExtNum, '4951042811')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Обручева). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -329,7 +329,7 @@
 	}
 	elseif( strpos($ExtNum, '4952411633')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Был зафиксирован пропущенный звонок с Avito (Ярославское шоссе 2Е). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
@@ -368,7 +368,7 @@
 	}
 	elseif( strpos($ExtNum, '4952412355')!==false ) {
 	    //telegram
-	    $url="https://api.telegram.org/bot198899021:AAHlKIjlARI6lgw3CXHPqbB3UWJsmdpGzjU/sendMessage?chat_id=-152627214";
+	    $url="https://api.telegram.org/bot:token/sendMessage?chat_id=-152627214";
 	    $url=$url."&text=".urlencode("Вы приняли звонок с Avito (Обручева). Дата/время звонка: ".date("d-m-Y H:i:s").". Номер абонента: 8".substr($CallerId,-10,10));
 
 	    $curl = curl_init();
